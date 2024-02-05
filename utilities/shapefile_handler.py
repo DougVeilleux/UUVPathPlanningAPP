@@ -2,7 +2,7 @@
 
 import geopandas as gpd
 import matplotlib.pyplot as plt
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, Point
 import pandas as pd
 import numpy as np
 
@@ -83,5 +83,23 @@ class ShapefileHandler:
         # Comment out to work with Tkinter
         # plt.show()
 
+    def get_land_coordinates_in_bounding_box(self, bounding_box):
+        """
+        Get the latitude and longitude data from each polygon in the
+        shapefile within the specified bounding box and return a DataFrame
+        of coordinates for each Polygon.
+        """
+        # Extract bounding box coordinates
+        min_x, min_y, max_x, max_y = bounding_box.bounds
 
+        # Filter polygons within the bounding box
+        filtered_data = self.data.cx[min_x:max_x, min_y:max_y]
 
+        coordinates = []
+        for geometry in filtered_data['geometry']:
+            if geometry.geom_type == 'Polygon':
+                lon, lat = geometry.exterior.xy
+                coordinates.append((lon, lat))
+
+        df = pd.DataFrame(coordinates, columns=['Longitude', 'Latitude'])
+        return df

@@ -1,12 +1,14 @@
+# button_handler.py
+
 import tkinter as tk
 
 
 
 class ButtonHandler:
-    def __init__(self, root, plot_shapefile_data, plot_random_data):
+    def __init__(self, root, plot_shapefile_data, set_path_planning_area_action):
         self.root = root
         self.plot_shapefile_data = plot_shapefile_data
-        self.plot_random_data = plot_random_data
+        self.set_path_planning_area_action = set_path_planning_area_action
         self.custom_font = ("Arial", 10)
         self.num_uuv = tk.StringVar()  # Initialize num_uuv as an attribute
         self.num_areas = tk.StringVar()  # Initialize num_areas as an attribute
@@ -45,7 +47,7 @@ class ButtonHandler:
         main_content_frame = tk.Frame(self.root)
         main_content_frame.pack(side="top", expand=True, fill=tk.BOTH)
         #
-        tk.Button(main_content_frame, text="Set Path\nPlanning Area", command=self.plot_shapefile_data,
+        tk.Button(main_content_frame, text="Set Path\nPlanning Area", command=self.set_path_planning_area_action,
                   width=12, height=3, font=self.custom_font).grid(row=1, column=0, padx=10, pady=10)
         tk.Button(main_content_frame, text="Set Start\nPoint", command=self.plot_shapefile_data,
                   width=12, height=3, font=self.custom_font).grid(row=1, column=1, padx=10, pady=10)
@@ -62,13 +64,15 @@ class ButtonHandler:
         # Access the entered value and use it as needed
         num_uuv = self.num_uuv.get()
         print("Number of UUV(s):", num_uuv)
-        # Add logic to use the entered value in your application
+        return num_uuv
+
 
     def set_number_of_surveys(self):
         # Access the entered value and use it as needed
         num_areas = self.num_areas.get()
         print("Number of Survey Area(s):", num_areas)
-        # Add logic to use the entered value in your application
+        return num_areas
+
 
 
 

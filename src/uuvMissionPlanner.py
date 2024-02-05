@@ -9,23 +9,26 @@ UUV motions.
 """
 import tkinter as tk
 import sys
+import numpy as np
+import pandas as pd
+
 # Use TkAgg backend for macOS
 if sys.platform == "darwin":
     import matplotlib
     matplotlib.use("TkAgg")
 
 import matplotlib.pyplot as plt
-import matplotlib.figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 
 from utilities.shapefile_handler import ShapefileHandler
+from utilities.set_path_plan_area_handler import SetPathPlanningAreaHandler
+
+
+
 from button_handler import ButtonHandler
-# from set_path_plan_area_handler import SetPathPlanningAreaHandler
-
-import numpy as np
-
 
 class UUVMissionPlannerApp:
+    # Constructor vvv
     def __init__(self, shapefile_path):
         self.shapefile_path = shapefile_path
         self.shapefile_handler = ShapefileHandler(self.shapefile_path)
@@ -37,9 +40,9 @@ class UUVMissionPlannerApp:
         # Setup the figure size within the Tk Window
         self.fig, self.ax = plt.subplots(figsize=(7.0, 5.5))
         self.fig.subplots_adjust(left=0.08, right=0.92, top=0.92, bottom=0.08)
-
+        # Setup Frame for Widgets (buttons, etc)
         self.frame = tk.Frame(self.root)
-
+        # Create the canvas to embed Matpli figure in the Tkinter window.
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.frame)
         self.canvas.draw()
         self.canvas.get_tk_widget().pack()
@@ -47,50 +50,42 @@ class UUVMissionPlannerApp:
         self.toolbar = NavigationToolbar2Tk(self.canvas, self.frame)
         self.toolbar.update()
         self.toolbar.pack(side="top", fill=tk.X)
-        # Pad the Top Margin again
+        # Pad the Top Margin again and pack the frame into the Tk Window
         self.frame.pack(pady=40)
 
-        # Setup / Display Interactive Buttons
-        # Create an instance of ButtonHandler
-        self.button_handler = ButtonHandler(self.root, self.plot_shapefile_data,
-                                            self.plot_random_data)
-        # Call create_buttons method to create buttons
-        self.button_handler.create_buttons()
-
-        # Call the plot shapefile to load and plot during instantiation
+        # Callback the plot shapefile during instantiation
         self.plot_shapefile_data()
 
+        # Instantiate Interactive Boxes and Buttons via ButtonHandler
+        self.button_handler = ButtonHandler(self.root, self.plot_shapefile_data,
+                                            self.set_path_planning_area_action).create_buttons()
 
+        # Create an instance of SetPathPlanningAreaHandler
+        self.set_path_plan_area_handler = SetPathPlanningAreaHandler(self.shapefile_handler, self.ax,
+                                                                     self.on_set_path_area)
+
+
+    # METHODS vvv
+    # Chart Area display
     def plot_shapefile_data(self):
-        # print("Set Path Planning Area button pressed")
-        # Use the ShapefileHandler to plot shapefile data
+        """
+        Callback - using the Shapefile Handler method plot_land_coordinates
+        to the Tk window. Then the constructor displays the plot upon instantiation.
+        """
         self.shapefile_handler.plot_land_coordinates(self.ax)
         self.canvas.draw()
-        # If reset from Toolbar navigation is casuing problems this can fix it.
-        # self.ax.cla()
-        # self.ax.plot(data['x'], data['y'])
-        # self.ax.grid(True)
-        # self.canvas.draw()
 
-    def plot_random_data(self):
-        print("Generate Paths / Set Survey Area / Generate Survey Paths button pressed")
-        self.ax.cla()
-        x = np.random.randint(0, 10, 10)
-        y = [val**2 for val in x]
-        self.ax.plot(x, y)
-        self.ax.grid(True)
-        self.canvas.draw()
+    # Path Planning Methods
+    def on_set_path_area(self, bounding_box):
+        self.set_path_plan_area_handler.process_bounding_box(bounding_box)
+    def set_path_planning_area_action(self):
+        print(f"Path Planning Area Coordinates Stored.")
+        bounding_box = self.set_path_plan_area_handler.get_bounding_box()
+        self.on_set_path_area(bounding_box)
 
-    def set_path_planning_area(self):
-        """
-        Description:
-            When method is run it shall take the lat, lon and land data within the full area shown
-            on the figure.
 
-        Return:
-            path_area : dataframe
-        """
-        pass
+
+
 
     def set_survey_planning_area(self):
         """
