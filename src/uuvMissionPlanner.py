@@ -36,9 +36,9 @@ class UUVMissionPlannerApp:
         # Instantiate the Tkinter Window Object
         self.root = tk.Tk()
         self.root.title("UUV Mission Planner")
-        self.root.geometry("900x900")
+        self.root.geometry("1050x1050")
         # Setup the figure size within the Tk Window
-        self.fig, self.ax = plt.subplots(figsize=(7.0, 5.5))
+        self.fig, self.ax = plt.subplots(figsize=(7.0, 7.0))
         self.fig.subplots_adjust(left=0.08, right=0.92, top=0.92, bottom=0.08)
         # Setup Frame for Widgets (buttons, etc)
         self.frame = tk.Frame(self.root)
@@ -58,7 +58,8 @@ class UUVMissionPlannerApp:
 
         # Instantiate Interactive Boxes and Buttons via ButtonHandler
         self.button_handler = ButtonHandler(self.root, self.plot_shapefile_data,
-                                            self.set_path_planning_area_action).create_buttons()
+                                            self.set_path_planning_area_action,
+                                            self.update_start_point, self.update_park_point).create_buttons()
 
         # Create an instance of SetPathPlanningAreaHandler
         self.set_path_plan_area_handler = SetPathPlanningAreaHandler(self.shapefile_handler, self.ax,
@@ -83,6 +84,11 @@ class UUVMissionPlannerApp:
         bounding_box = self.set_path_plan_area_handler.get_bounding_box()
         self.on_set_path_area(bounding_box)
 
+    def update_start_point(self):
+        pass
+
+    def update_park_point(self):
+        pass
 
 
 
