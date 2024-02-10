@@ -1,4 +1,4 @@
-
+# uuvMissionPlanner.py
 """
 
 Simple GUI app to interface with Chart for planning a mission.
@@ -22,7 +22,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 
 from utilities.shapefile_handler import ShapefileHandler
 from utilities.set_path_plan_area_handler import SetPathPlanningAreaHandler
-
+from utilities.mission_points_handler import MissionPointsHandler
 
 
 from button_handler import ButtonHandler
@@ -32,6 +32,11 @@ class UUVMissionPlannerApp:
     def __init__(self, shapefile_path):
         self.shapefile_path = shapefile_path
         self.shapefile_handler = ShapefileHandler(self.shapefile_path)
+        self.path_area_set = False
+        self.start_point = None
+        self.park_point = None
+
+
 
         # Instantiate the Tkinter Window Object
         self.root = tk.Tk()
@@ -42,7 +47,7 @@ class UUVMissionPlannerApp:
         self.fig.subplots_adjust(left=0.08, right=0.92, top=0.92, bottom=0.08)
         # Setup Frame for Widgets (buttons, etc)
         self.frame = tk.Frame(self.root)
-        # Create the canvas to embed Matpli figure in the Tkinter window.
+        # Create the canvas to embed Matplot figure in the Tkinter window.
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.frame)
         self.canvas.draw()
         self.canvas.get_tk_widget().pack()
@@ -59,12 +64,15 @@ class UUVMissionPlannerApp:
         # Instantiate Interactive Boxes and Buttons via ButtonHandler
         self.button_handler = ButtonHandler(self.root, self.plot_shapefile_data,
                                             self.set_path_planning_area_action,
-                                            self.update_start_point, self.update_park_point).create_buttons()
+                                            self.set_start_point, self.reset_start_point,
+                                            self.set_park_point, self.reset_park_point).create_buttons()
 
         # Create an instance of SetPathPlanningAreaHandler
         self.set_path_plan_area_handler = SetPathPlanningAreaHandler(self.shapefile_handler, self.ax,
-                                                                     self.on_set_path_area)
 
+                                                                     self.on_set_path_area)
+        # Create an instance of MissionPointsHandler
+        self.mission_points_handler = MissionPointsHandler(self.ax, self.shapefile_handler)
 
     # METHODS vvv
     # Chart Area display
@@ -78,17 +86,38 @@ class UUVMissionPlannerApp:
 
     # Path Planning Methods
     def on_set_path_area(self, bounding_box):
-        self.set_path_plan_area_handler.process_bounding_box(bounding_box)
+        if self.path_area_set:
+            self.set_path_plan_area_handler.process_bounding_box(bounding_box)
+
     def set_path_planning_area_action(self):
         print(f"Path Planning Area Coordinates Stored.")
         bounding_box = self.set_path_plan_area_handler.get_bounding_box()
         self.on_set_path_area(bounding_box)
+        self.path_area_set = True #Set flag
 
-    def update_start_point(self):
-        pass
+    def set_start_point(self, event):
+        print("Select Start Point Location.")
+        # Pass the event information when calling set_start_point
+        # event = self.root.focus_get()  # Get the current event
+        self.mission_points_handler.set_start_point(event)
 
-    def update_park_point(self):
-        pass
+    def reset_start_point(self):
+        print("Start Point Reset.")
+        self.mission_points_handler.reset_start_point()
+
+    def set_park_point(self, event):
+        print("Select Park Point Location.")
+        self.mission_points_handler.set_park_point(event)
+
+    def reset_park_point(self):
+        print("Park Point Reset.")
+        self.mission_points_handler.reset_park_point()
+
+
+
+
+
+
 
 
 

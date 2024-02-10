@@ -36,7 +36,7 @@ class SetPathPlanningAreaHandler:
             # Save the DataFrame to a CSV file
             project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
             csv_folder = os.path.join(project_root, 'data', 'path_planning_area')
-            path_area.to_csv(os.path.join(csv_folder, 'path_area_data.csv'), index=False)
+            path_area.to_csv(os.path.join(csv_folder, 'path_area_data_for_planner_development.csv'), index=False)
 
             print("Path Planning Area Selected")
             return path_area

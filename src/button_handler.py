@@ -6,12 +6,14 @@ import tkinter as tk
 
 class ButtonHandler:
     def __init__(self, root, plot_shapefile_data, set_path_planning_area_action,
-                 update_start_point, update_park_point):
+                 set_start_point, reset_start_point, set_park_point, reset_park_point):
         self.root = root
         self.plot_shapefile_data = plot_shapefile_data
         self.set_path_planning_area_action = set_path_planning_area_action
-        self.update_start_point = update_start_point
-        self.update_park_point = update_park_point
+        self.set_start_point = set_start_point
+        self.reset_start_point = reset_start_point
+        self.set_park_point = set_park_point
+        self.reset_park_point = reset_park_point
 
         self.custom_font = ("Arial", 10)
         self.num_uuv = tk.StringVar()  # Initialize num_uuv as an attribute
@@ -47,7 +49,7 @@ class ButtonHandler:
                   width=14, height=2, font=self.custom_font).grid(row=5, column=0, padx=10, pady=5)
 
 
-        # # Create PATH Planning buttons in the main content area:
+        # Create PATH Planning buttons in the main content area:
         main_content_frame = tk.Frame(self.root)
         main_content_frame.pack(side="top", expand=True, fill=tk.BOTH)
         #
@@ -57,23 +59,32 @@ class ButtonHandler:
         set_path_button.grid(row=1, column=0, padx=10, pady=10)
 
         set_start_point_button = tk.Button(main_content_frame, text="Set Start\nPoint",
-                                           command=self.toggle_start_point_flag,
-                                           width=12, height=3, font=self.custom_font)
+                                           command=self.set_start_point,
+                                           width=6, height=3, font=self.custom_font)
         set_start_point_button.grid(row=1, column=1, padx=10, pady=10)
+        reset_start_point_button = tk.Button(main_content_frame, text="Reset Start\nPoint",
+                                             command=self.reset_start_point,
+                                             width=6, height=3, font=self.custom_font)
+        reset_start_point_button.grid(row=1, column=2, padx=5, pady=10)
+
 
         set_park_point_button = tk.Button(main_content_frame, text="Set Park\nPoint",
-                                          command=self.toggle_park_point_flag,
-                                          width=12, height=3, font=self.custom_font)
-        set_park_point_button.grid(row=1, column=2, padx=10, pady=10)
+                                          command=self.set_park_point,
+                                          width=6, height=3, font=self.custom_font)
+        set_park_point_button.grid(row=1, column=3, padx=10, pady=10)
+        reset_park_point_button = tk.Button(main_content_frame, text="Reset Park\nPoint",
+                                             command=self.reset_park_point,
+                                             width=6, height=3, font=self.custom_font)
+        reset_park_point_button.grid(row=1, column=4, padx=5, pady=10)
 
         generate_path_button = tk.Button(main_content_frame, text="Generate\nPath Plans",
                                          command=self.plot_shapefile_data,
                                          width=12, height=3, font=self.custom_font)
-        generate_path_button.grid(row=1, column=3, padx=10, pady=10)
+        generate_path_button.grid(row=1, column=5, padx=10, pady=10)
 
         reset_path_button = tk.Button(main_content_frame, text="Reset\nPath Plan", command=self.plot_shapefile_data,
                                       width=12, height=3, font=self.custom_font)
-        reset_path_button.grid(row=1, column=4, padx=10, pady=10)
+        reset_path_button.grid(row=1, column=6, padx=10, pady=10)
 
 
     def set_number_of_vehicles(self):
@@ -89,8 +100,14 @@ class ButtonHandler:
         print("Number of Survey Area(s):", num_areas)
         return num_areas
 
-    def toggle_start_point_flag(self):
+    def set_start_point(self, event):
         print("Click on the chart to set the start point.")
+        self.set_start_point(event)
+    def reset_start_point(self):
+        print("Start Point Reset. You can select a new Start Point.")
 
-    def toggle_park_point_flag(self):
+    def set_park_point(self, event):
         print("Click on the chart to set the park point.")
+        self.set_park_point(event)
+    def reset_park_point(self):
+        print("Park Point Reset. You can select a new Park Point.")
