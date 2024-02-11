@@ -59,8 +59,6 @@ class ShapefileHandler:
         reset_path_area = Button(btn_reset_path_area, 'Reset Path\nArea')
         reset_path_area.on_clicked(lambda event: self.reset_path_area(event, ax))
 
-
-
         # Create bounding polygon to fill the entire area with light blue
         min_lon, max_lon = self.data.bounds.minx.min(), self.data.bounds.maxx.max()
         min_lat, max_lat = self.data.bounds.miny.min(), self.data.bounds.maxy.max()
@@ -74,11 +72,10 @@ class ShapefileHandler:
         for index, row in self.get_land_coordinates().iterrows():
             lon, lat = row['Longitude'], row['Latitude']
             ax.fill(lon, lat, facecolor=[0.824, 0.706, 0.549], edgecolor='black', linewidth=1)
+
         # Plot red Dot at centroid of each polygon if desired.
         if plot_centroids:
-            centroids = self.calculate_polygon_centroids()
-            for centroid in centroids:
-                ax.plot(centroid.x, centroid.y, 'ro', markersize=2)
+            self.plot_centroids_and_indices(ax)
 
         # vvv FORMATING vvv
         # Set axis labels
@@ -90,11 +87,36 @@ class ShapefileHandler:
         ax.set_aspect('equal')
         # Setting Title
         ax.set_title('NOAA CHART DATA: US4MA23M', fontsize=20)
+
+        # Connect event for updating text annotations
+        ax.figure.canvas.mpl_connect('draw_event', lambda event: self.update_text_annotations(ax))
+
         # Comment out to work with Tkinter
         plt.show()
 
+    def plot_centroids_and_indices(self, ax):
+        """
+        Plot red Dot at centroid of each polygon and index number next to the centroid.
+        """
+        centroids = self.calculate_polygon_centroids()
+        for centroid, index in centroids:
+            ax.plot(centroid.x, centroid.y, 'ro', markersize=2)
+            ax.text(centroid.x, centroid.y, str(index), fontsize=8, color='blue')  # Plot index next to centroid
+
+    def update_text_annotations(self, ax):
+        """
+        Update positions of text annotations when plot is redrawn due to zooming or panning.
+        """
+        # Clear existing texts
+        ax.texts.clear()
+
+        # Plot red Dot at centroid of each polygon and index number next to the centroid.
+        self.plot_centroids_and_indices(ax)
+
+        ax.figure.canvas.draw_idle()  # Update the canvas to reflect changes
+
     # Button Click Methods
-    def set_path_area(self, event, ax):
+    def set_path_area(self, event, ax, plot_centroids=True):
         print('Path Planning Area Set')
         # Get current axis limits (bounding box)
         xmin, xmax = ax.get_xlim()
@@ -109,53 +131,15 @@ class ShapefileHandler:
         # Create the bounding box polygon
         bounding_box_polygon = Polygon([(xmin, ymin), (xmax, ymin), (xmax, ymax), (xmin, ymax)])
 
-        # Get all polygons within the bounding box
-        polygons_within_box = []
-        for polygon in self.data['geometry']:
-            buffered_polygon = polygon.buffer(0.0001)
-            if buffered_polygon.intersects(bounding_box_polygon) or polygon.within(bounding_box_polygon):
-                polygons_within_box.append(buffered_polygon)
-        print('in box')
-        polygons_within_box = MultiPolygon(polygons_within_box)
-        print(type(polygons_within_box))
-        print(polygons_within_box)
 
-
-        # Subtract each land polygon from the bounding box polygon
-        water_polygon = bounding_box_polygon
-        poly_count = 1
-        # for i in range(len(polygons_within_box)):
-        #     print('Land Polygon: ', poly_count)
-        #     # print(polygons_within_box[i])
-        #     print('Start Water Area: ', water_polygon.area)
-        #     water_polygon = water_polygon.difference(polygons_within_box[i])
-        #     print(10*'*')
-        #     print("End water Ares: ", water_polygon.area)
-        #     poly_count += 1
-        # print('water')
-        # print(type(water_polygon))
-        # print(water_polygon)
-        for i, polygon in enumerate(polygons_within_box.geoms):
-            print('Land Polygon: ', i + 1)
-            print('Start Water Area: ', water_polygon.area)
-            water_polygon = water_polygon.difference(polygon)
-            print(10 * '*')
-            print("End water Area: ", water_polygon.area)
-        print('water')
-        print(type(water_polygon))
-        print(water_polygon)
 
         # Plot the resulting water polygon
         fig2, ax2 = plt.subplots(figsize=(14, 9))
-        if water_polygon.geom_type == 'MultiPolygon':
-            for polygon in water_polygon:
-                x, y = polygon.exterior.xy
-                ax2.fill(x, y, color='lightblue')
-            else:
-                x, y = water_polygon.exterior.xy
-                ax2.fill(x, y, color='lightblue')
-        # x, y = water_polygon.exterior.xy
-        # ax2.fill(x, y, color='lightblue')
+
+
+
+
+
 
         ax2.set_xlabel('Longitude')
         ax2.set_ylabel('Latitude')
@@ -210,12 +194,12 @@ class ShapefileHandler:
         :return: Point data (x, y)
         """
         centroids = []
-        for geometry in self.data['geometry']:
+        for i, geometry in enumerate(self.data['geometry']):
             if geometry.geom_type == 'Polygon':
                 centroid = geometry.centroid
                 # Create a point object representing the centroid
                 centroid_point = Point(centroid.x, centroid.y)
-                centroids.append(centroid_point)
+                centroids.append((centroid_point, i))  # Append tuple with centroid and index
         return centroids
 
     def get_water_polygon(self):
@@ -347,4 +331,4 @@ if __name__ == '__main__':
     chart_us4ma23m = ShapefileHandler(shapefile_path)
 
     centroids = chart_us4ma23m.calculate_polygon_centroids()
-    chart_us4ma23m.plot_chart_data(plot_centroids=False)
+    chart_us4ma23m.plot_chart_data(plot_centroids=True)
