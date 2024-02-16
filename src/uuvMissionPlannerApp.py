@@ -1,4 +1,4 @@
-# uuvMissionPlanner.py
+# uuvMissionPlannerApp.py
 """
 
 Simple GUI app to interface with Chart for planning a mission.

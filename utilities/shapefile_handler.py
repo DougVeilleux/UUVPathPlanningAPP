@@ -13,6 +13,11 @@ import numpy as np
 class ShapefileHandler:
 
     def __init__(self, shapefile_path):
+        """
+        Constructor: Instantiate by reading shapefile and storing to
+            data variable.
+        :param shapefile_path: '\Full\file_path\to\data_folder
+        """
         self.shapefile_path = shapefile_path
         self.data = None
         self.read_shapefile()
@@ -137,10 +142,6 @@ class ShapefileHandler:
             plt.show()
 
         return land_polygons, water_domain
-
-
-
-
 
     # Helper Methods:
     def calculate_polygon_centroids(self):
