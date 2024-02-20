@@ -76,14 +76,24 @@ def generate_sample_domain():
     sw = Point(0, 0)  # Southwest corner
 
     rectangle_gdf = PolygonShapeBuilder.rectangle(nw, ne, se, sw)
-    circle_gdf = PolygonShapeBuilder.circle(x_pos=3, y_pos=5, radius=1, num_segments=20)
+    circle_gdf1 = PolygonShapeBuilder.circle(x_pos=6, y_pos=2, radius=0.5, num_segments=10)
+    circle_gdf2 = PolygonShapeBuilder.circle(x_pos=3, y_pos=5, radius=1, num_segments=15)
+    circle_gdf3 = PolygonShapeBuilder.circle(x_pos=12, y_pos=6, radius=1.5, num_segments=20)
     tp1 = Point(15, 0)
     tp2 = se
     tp3 = Point(20, 3)
-    triangle_gdf = PolygonShapeBuilder.triangle(tp1, tp2, tp3)
+    triangle_gdf1 = PolygonShapeBuilder.triangle(tp1, tp2, tp3)
+    tp1 = Point(7.5, 6)
+    tp2 = Point(8.0, 9.5)
+    tp3 = Point(5, 8)
+    triangle_gdf2 = PolygonShapeBuilder.triangle(tp1, tp2, tp3)
 
-    sample_domain_gdf = rectangle_gdf.difference(circle_gdf)
-    sample_domain_gdf = sample_domain_gdf.difference(triangle_gdf)
+    sample_domain_gdf = rectangle_gdf.difference(circle_gdf1)
+    sample_domain_gdf = sample_domain_gdf.difference(circle_gdf2)
+    sample_domain_gdf = sample_domain_gdf.difference(circle_gdf3)
+    sample_domain_gdf = sample_domain_gdf.difference(triangle_gdf1)
+    sample_domain_gdf = sample_domain_gdf.difference(triangle_gdf2)
+
 
     return sample_domain_gdf
 def plot_domain(quad_domain_gdf):
@@ -121,5 +131,5 @@ def plot_domain(quad_domain_gdf):
 
 
 if __name__ == '__main__':
-    quad_domain_gdf = generate_quad_domain()
+    quad_domain_gdf = generate_sample_domain()
     plot_domain(quad_domain_gdf)

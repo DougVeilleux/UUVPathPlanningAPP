@@ -94,7 +94,7 @@ class ShapefileHandler:
             show(df)
         # Return dataframe
         return df
-    def make_water_polygon(self, showPlot=True):
+    def make_water_polygon(self, showPlot=False):
         """
         Using the latitude and longitude coordinates of the data create a single
         Polygon (the water) by subtracting the Land Polygons from the starting
@@ -133,7 +133,7 @@ class ShapefileHandler:
             ax.set_xlabel('Longitude')
             ax.set_ylabel('Latitude')
             # Add grid
-            ax.grid(True, which='both', linestyle='--', linewidth=0.5)
+            ax.grid(True, which='both', color='red', linestyle='--', linewidth=0.5)
             # Setting same scale for x and y axes
             # ax.set_aspect('equal')
             # Setting Title
@@ -141,7 +141,65 @@ class ShapefileHandler:
             # Show plot
             plt.show()
 
-        return land_polygons, water_domain
+        return water_domain
+
+    def extract_polygon_points(self, polygon, showPlot=False):
+        """
+        Extracts boundary and island points of a polygon or MultiPolygon.
+        Parameters:
+        - polygon: shapely.geometry.Polygon or shapely.geometry.MultiPolygon, input polygon(s)
+        Returns:
+        - boundary_points: list of tuples, boundary points of the polygon(s)
+        - island_points: list of tuples, island points of the polygon(s)
+        """
+        # Extract the MultiPolygon geometry from the GeoSeries if needed
+        if isinstance(polygon, gpd.GeoSeries):
+            polygon = polygon.geometry.iloc[0]
+
+        boundary_points = []
+        island_points = []
+
+        # Check if it's a MultiPolygon
+        if isinstance(polygon, MultiPolygon):
+            for poly in polygon.geoms:  # Extract components of the MultiPolygon
+                boundary, island = self._extract_polygon_points(poly)
+                boundary_points.extend(boundary)
+                island_points.extend(island)
+        else:
+            boundary_points, island_points = self._extract_polygon_points(polygon)
+
+        # Plot the points if showPlot is True
+        if showPlot:
+            fig, ax = plt.subplots(figsize=(14, 9))
+
+            # Plot boundary points
+            x_boundary, y_boundary = zip(*boundary_points)
+            ax.scatter(x_boundary, y_boundary, c='blue', s=4, label='Boundary Points')
+            # ax.plot(x_boundary, y_boundary, '--', c='blue')
+
+            # Plot island points
+            x_island, y_island = zip(*island_points)
+            ax.scatter(x_island, y_island, c='red', s=4, label='Island Points')
+            # ax.plot(x_island, y_island, '--', c='red')
+
+            ax.set_xlabel('Longitude')
+            ax.set_ylabel('Latitude')
+            ax.legend()
+            ax.grid(True)
+            plt.title('Boundary and Island Points')
+            plt.show()
+
+        return boundary_points, island_points
+
+    def _extract_polygon_points(self, polygon):
+        """
+        Helper method to extract boundary and island points of a single polygon.
+        """
+        boundary_points = list(polygon.exterior.coords)
+        island_points = []
+        for interior in polygon.interiors:
+            island_points.extend(list(interior.coords))
+        return boundary_points, island_points
 
     # Helper Methods:
     def calculate_polygon_centroids(self):
@@ -221,5 +279,7 @@ if __name__ == '__main__':
 
     chart_us4ma23m = ShapefileHandler(shapefile_path)
     # chart_us4ma23m.plot_shapefile_data()
-    chart_us4ma23m.make_water_polygon()
-
+    # Form the Water Domain from the Shapefile Read in
+    water_domain_polygon = chart_us4ma23m.make_water_polygon(showPlot=False)
+    # Extract the boundary and island points from the "Water Domain"
+    boundary_points, island_points = chart_us4ma23m.extract_polygon_points(water_domain_polygon, showPlot=True)
