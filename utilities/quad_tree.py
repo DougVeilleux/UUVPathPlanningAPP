@@ -7,6 +7,8 @@ as the reference
 """
 
 import matplotlib.pyplot as plt
+import numpy as np
+
 
 class Point:
     """
@@ -15,6 +17,15 @@ class Point:
     def __init__(self, x, y):
         self.x = x  # x, coord.
         self.y = y  # y, coord.
+
+    def distanceFrom(self, other):
+        """
+        Returns the distance between this point and another point.
+        """
+        dx = other.x - self.x
+        dy = other.y - self.y
+        return (dx ** 2 + dy ** 2) ** 0.5
+
 
 class Rectangle:
     """
@@ -54,22 +65,23 @@ class Rectangle:
 
 class QuadTree:
     """
-    Boundary is a Rectangle Object defining the region for which points are
+    Boundary: is a Rectangle Object defining the region for which points are
     placed into this node.
-    MAX_POINTS_PER_NODE: the max number of points a node can hold before
+    max_points_per_node: the max number of points a node can hold before
         it must be divided (branch into more nodes)
     depth: keeps track of how deep into the quadtree this node lies.
     """
-    MAX_POINTS_PER_NODE = 1
 
-    def __init__(self, boundary, depth=0):
+    def __init__(self, boundary, depth=0, max_points_per_node=1):
         self.boundary = boundary
         self.depth = depth
+        self.max_points_per_node = max_points_per_node
         self.points = []
         self.northWest = None
         self.northEast = None
         self.southWest = None
         self.southEast = None
+        self.divided = False
 
     def insert(self, point):
         """
@@ -80,7 +92,7 @@ class QuadTree:
             return False
 
         # check if there is room for point without dividing the QuadTree
-        if len(self.points) < self.MAX_POINTS_PER_NODE:
+        if len(self.points) < self.max_points_per_node:
             self.points.append(point)
             return True
         else: #Subdivide the node if it hasn't been subdivided yet
@@ -106,78 +118,117 @@ class QuadTree:
             representing one quadrant of the parent node's boundary.  Continues
             recursively until each node contains the max number of points.
         """
+        # Debug Code
+        # print("Subdividing node at depth", self.depth)
+        # print("Before subdivision - Boundary:", self.boundary.center.x, self.boundary.center.y, self.boundary.width,
+        #       self.boundary.height)
+
         center = self.boundary.center
         half_width = self.boundary.width / 2.0
         half_height = self.boundary.height / 2.0
 
-        nw_boundary = Rectangle(Point(center.x - half_width, center.y + half_height),
-                                half_width, half_height)
+        nw_center = Point(center.x - half_width / 2, center.y + half_height / 2)
+        ne_center = Point(center.x + half_width / 2, center.y + half_height / 2)
+        sw_center = Point(center.x - half_width / 2, center.y - half_height / 2)
+        se_center = Point(center.x + half_width / 2, center.y - half_height / 2)
+
+        nw_boundary = Rectangle(nw_center, half_width, half_height)
         self.northWest = QuadTree(nw_boundary, self.depth + 1)
-
-        ne_boundary = Rectangle(Point(center.x + half_width, center.y + half_height),
-                                half_width, half_height)
+        ne_boundary = Rectangle(ne_center, half_width, half_height)
         self.northEast = QuadTree(ne_boundary, self.depth + 1)
-
-        sw_boundary = Rectangle(Point(center.x - half_width, center.y - half_height),
-                                half_width, half_height)
+        sw_boundary = Rectangle(sw_center, half_width, half_height)
         self.southWest = QuadTree(sw_boundary, self.depth + 1)
-
-        se_boundary = Rectangle(Point(center.x + half_width, center.y - half_height),
-                                half_width, half_height)
+        se_boundary = Rectangle(se_center, half_width, half_height)
         self.southEast = QuadTree(se_boundary, self.depth + 1)
+
+        self.divided = True
+        # Debug Code
+        # print("After subdivision - NW Boundary:", nw_boundary.center.x, nw_boundary.center.y, nw_boundary.width,
+        #       nw_boundary.height)
+        # print("After subdivision - NE Boundary:", ne_boundary.center.x, ne_boundary.center.y, ne_boundary.width,
+        #       ne_boundary.height)
+        # print("After subdivision - SW Boundary:", sw_boundary.center.x, sw_boundary.center.y, sw_boundary.width,
+        #       sw_boundary.height)
+        # print("After subdivision - SE Boundary:", se_boundary.center.x, se_boundary.center.y, se_boundary.width,
+        #       se_boundary.height)
+
 
     # def query_range(self, range):
 
     def draw(self, ax):
         """
-        Method to recursively draw the quadtree and its points
+        Method to recursively draw the quadtree rectangles
         """
-        self.boundary.draw(ax, c='black', lw=1)
-
-        for point in self.points:
-            ax.plot(point.x, point.y, 'ro', markersize=2)
-
-        if self.northWest:
-            self.northWest.draw(ax)
-        if self.northEast:
-            self.northEast.draw(ax)
-        if self.southWest:
-            self.southWest.draw(ax)
-        if self.southEast:
-            self.southEast.draw(ax)
-
-
-
-
-import random
-import numpy as np
-DPI = 72
-np.random.seed(60)
-
-width, height = 600, 400
-N =500
-
-coords = np.random.randn(N, 2) * height/3 + (width/2, height/2)
-points = [Point(*coord) for coord in coords]
-
-boundary = Rectangle(Point(width/2, height/2), width, height)
-qtree = QuadTree(boundary)
-for point in points:
-    qtree.insert(point)
+        self.draw_tree(ax, self)
+    def draw_tree(self, ax, node, depth=0):
+        """
+        Method: Helper to draw
+        """
+        if node:
+            node.boundary.draw(ax)
+            self.draw_tree(ax, node.northWest, depth + 1)
+            self.draw_tree(ax, node.northEast, depth + 1)
+            self.draw_tree(ax, node.southWest, depth + 1)
+            self.draw_tree(ax, node.southEast, depth + 1)
+    def __str__(self):
+        """Return a string representation of this node, suitably formatted."""
+        sp = ' ' * self.depth * 2
+        s = f"Depth {self.depth}: Boundary: {self.boundary.center.x}, {self.boundary.center.y}, {self.boundary.width}, {self.boundary.height}\n"
+        if self.points:
+            s += sp + "Points:\n"
+            for point in self.points:
+                s += sp + f"- {point.x}, {point.y}\n"
+        if not self.divided:
+            return s
+        return s + '\n' + '\n'.join([
+            sp + 'NW: \n' + str(self.northWest),
+            sp + 'NE: \n' + str(self.northEast),
+            sp + 'SE: \n' + str(self.southEast),
+            sp + 'SW: \n' + str(self.southWest)])
 
 
-fig = plt.figure(figsize=(700/DPI, 500/DPI), dpi=DPI)
-ax = plt.subplot()
-ax.set_xlim(0, width)
-ax.set_ylim(0, height)
-qtree.draw(ax)
+if __name__ == '__main__':
+    DPI = 72
+    np.random.seed(60)
 
+    N = 20
+    x = np.random.rand(N)
+    y = np.random.rand(N)
+    # Calculate the width and height based on the range of x and y
+    width = np.max(x) - np.min(x)
+    height = np.max(y) - np.min(y)
+    # Create a list of Point objects
+    points = [Point(x[i], y[i]) for i in range(N)]
+    for point in points:
+        print(f"Point: ({point.x}, {point.y})")
+    # Print width and height
+    print("Width:", width)
+    print("Height:", height)
 
+    # Print all the points
+    # for point in points:
+    #     print("Point({}, {})".format(point.x, point.y))
 
+    boundary = Rectangle(Point(width/2, height/2), width, height)
+    qtree = QuadTree(boundary, max_points_per_node=2)
+    for point in points:
+        qtree.insert(point)
 
-plt.show()
+    # print(qtree)
 
+    # Plot all the points
+    fig = plt.figure(figsize=(8, 6))
+    ax = plt.subplot()
+    ax.scatter(x, y, color='blue', s=10)
 
+    # Plot the quadtree boundaries
+    qtree.draw(ax)
 
+    # Set the limits for the plot
+    ax.set_xlim(0, width)
+    ax.set_ylim(0, height)
+
+    # Show the plot
+    plt.show()
 
 

@@ -38,7 +38,6 @@ class PolygonShapeBuilder:
         circle_points = [Point(x_i, y_i) for x_i, y_i in zip(x,y)]
         circle = Polygon(circle_points)
         return gpd.GeoDataFrame(geometry=[circle])
-
     @staticmethod
     def triangle(point1, point2, point3):
         """
@@ -52,6 +51,7 @@ class PolygonShapeBuilder:
         """
         triangle = Polygon([point1, point2, point3, point1])
         return gpd.GeoDataFrame(geometry=[triangle])
+
     @staticmethod
     def extract_polygon_points(polygon):
         """
@@ -68,6 +68,7 @@ class PolygonShapeBuilder:
         for interior in polygon.interiors:
             interior_points.extend(list(interior.coords))
         return exterior_points, interior_points
+
 def generate_sample_domain():
     # Define coordinates for the corners of the rectangle
     nw = Point(0, 10)  # Northwest corner
@@ -94,8 +95,8 @@ def generate_sample_domain():
     sample_domain_gdf = sample_domain_gdf.difference(triangle_gdf1)
     sample_domain_gdf = sample_domain_gdf.difference(triangle_gdf2)
 
-
     return sample_domain_gdf
+
 def plot_domain(quad_domain_gdf):
     # Plot Polygons
     fig, ax = plt.subplots(figsize=(14, 9))
