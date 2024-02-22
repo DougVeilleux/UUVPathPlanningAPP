@@ -278,8 +278,8 @@ if __name__ == '__main__':
     )
 
     chart_us4ma23m = ShapefileHandler(shapefile_path)
-    # chart_us4ma23m.plot_shapefile_data()
+    chart_us4ma23m.plot_shapefile_data()
     # Form the Water Domain from the Shapefile Read in
-    water_domain_polygon = chart_us4ma23m.make_water_polygon(showPlot=False)
+    water_domain_polygon = chart_us4ma23m.make_water_polygon(showPlot=True)
     # Extract the boundary and island points from the "Water Domain"
     boundary_points, island_points = chart_us4ma23m.extract_polygon_points(water_domain_polygon, showPlot=True)

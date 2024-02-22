@@ -34,7 +34,7 @@ all_points = exterior_points + interior_points
 
 # Create the rectangle boundary using the calculated center (cx, cy), width, and height
 boundary = Rectangle(Point(cx, cy), boundary_width, boundary_height)
-qtree = QuadTree(boundary, max_points_per_node=1)
+qtree = QuadTree(boundary, capacity=1)
 for point in all_points:
     qtree.insert(point)
 
@@ -60,7 +60,7 @@ plt.ylabel('Y')
 plt.title('Scatter Plot of Exterior and Interior Points')
 
 # Plot the quadtree boundaries
-qtree.draw(ax)
+qtree.draw()
 
 ax.set_aspect('equal')
 plt.show()
