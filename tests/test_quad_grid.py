@@ -51,9 +51,9 @@ interior_x = [point.x for point in interior_points]
 interior_y = [point.y for point in interior_points]
 
 # Scatter plot exterior points
-plt.scatter(exterior_x, exterior_y, color='blue', s=5)
+# plt.scatter(exterior_x, exterior_y, color='blue', s=5)
 # Scatter plot interior points
-plt.scatter(interior_x, interior_y, color='red', s=5)
+# plt.scatter(interior_x, interior_y, color='red', s=5)
 
 plt.xlabel('X')
 plt.ylabel('Y')

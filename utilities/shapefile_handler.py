@@ -142,7 +142,6 @@ class ShapefileHandler:
             plt.show()
 
         return water_domain
-
     def extract_polygon_points(self, polygon, showPlot=False):
         """
         Extracts boundary and island points of a polygon or MultiPolygon.
@@ -190,7 +189,6 @@ class ShapefileHandler:
             plt.show()
 
         return boundary_points, island_points
-
     def _extract_polygon_points(self, polygon):
         """
         Helper method to extract boundary and island points of a single polygon.
@@ -200,8 +198,95 @@ class ShapefileHandler:
         for interior in polygon.interiors:
             island_points.extend(list(interior.coords))
         return boundary_points, island_points
+    def assign_costs(self, water_polygon, max_resolution=0.1, boundary_resolution=0.001):
+        """
+        Assigns a cost of ZERO to all the latitude / longitude coordinates within the
+            water polygon.
+        Parameters:
+            water_polygon: shapely.geometry.Polygon
+            max_resolution: float, max_resolution of the default grid (default: 0.1)
+            boundary_resolution: float, fine resolution near land / water boundaries (default: 0.001)
+        Return:
+            cost_grid: GeoDataFrame, containing points with their respective costs
+        """
+        # Extract the geometry from the GeoSeries if needed
+        if isinstance(water_polygon, gpd.GeoSeries):
+            water_polygons_geom = water_polygon.geometry.iloc[0] if len(water_polygon) > 0 else None
+        else:
+            water_polygons_geom = water_polygon
 
-    # Helper Methods:
+        # Get the Bounds of the Polygon
+        min_x, min_y, max_x, max_y = water_polygons_geom.bounds
+
+        # Ensure the water polygons are valid
+        if isinstance(water_polygons_geom, Polygon):
+            water_polygons = [water_polygons_geom]
+        elif isinstance(water_polygons_geom, MultiPolygon):
+            water_polygons = water_polygons_geom.geoms
+        else:
+            raise ValueError("Invalid water_polygons type. Expected Polygon or MultiPolygon.")
+
+        # Initialize DataFrame to store points with their costs
+        data = {'geometry': [], 'cost': []}
+
+        # Iterate over each point within the bounding box
+        for x in np.arange(min_x, max_x, max_resolution):
+            for y in np.arange(min_y, max_y, max_resolution):
+                point = Point(x, y)
+                # Compute the distance to the nearest boundary
+                min_distance = min(polygon.boundary.distance(point) for polygon in water_polygons)
+                # Determine the resolution based on the distance to the boundary
+                resolution = max(boundary_resolution, min_distance/10)  #Adjust factor to best fit data
+                # Refine the grid near the boundaries
+                for xx in np.arange(x, x+resolution, resolution):
+                    for yy in np.arange(y, y+resolution, resolution):
+                        point = Point(xx, yy)
+                        # Check if point is within the water polygon
+                        if any(polygon.contains(point) for polygon in water_polygons):
+                            # Assign cost of 0 for water
+                            data['geometry'].append(point)
+                            data['cost'].append(0)
+                        else:
+                            data['geometry'].append(point)
+                            data['cost'].append(1)
+
+        # Create GeoDataFrame from the data
+        cost_data = gpd.GeoDataFrame(data)
+        return cost_data
+
+    def plot_costs_overlay(self, water_polygon, cost_data):
+        """
+        Mehtod to visualize the cost_data during code develoment
+        Parameters:
+            water_polygon: result from "make_water_polygon" method
+            cost_data: result from "assign_costs" method
+        :return:
+        """
+
+        fig, ax = plt.subplots(figsize=(14, 9))
+        # Plot water polygon
+        water_polygon.plot(ax=ax, color='cornflowerblue', edgecolor='black', label='Water')
+        # Plot cost data
+        ax.scatter(cost_data.geometry.x, cost_data.geometry.y, c=cost_data['cost'], cmap='coolwarm', s=5,
+                   label='Cost Data')
+
+        # vvv FORMATTING vvv
+        # Set axis labels
+        ax.set_xlabel('Longitude')
+        ax.set_ylabel('Latitude')
+        # Add grid
+        ax.grid(True, which='both', color='red', linestyle='--', linewidth=0.5)
+        # Setting same scale for x and y axes
+        # ax.set_aspect('equal')
+        # Setting Title
+        ax.set_title('Costing Data Overlay', fontsize=20)
+        # Show plot
+        plt.show()
+
+
+
+
+    # vvvvvvv    Helper Methods:
     def calculate_polygon_centroids(self):
         """
         Calculate the centroids of each polygon in the shapefile and store those
@@ -220,53 +305,54 @@ class ShapefileHandler:
 
 
 
-    # Button Click Methods
-    def set_path_area(self, event, ax, plot_centroids=True):
-        print('Path Planning Area Set')
-        # Get current axis limits (bounding box)
-        xmin, xmax = ax.get_xlim()
-        ymin, ymax = ax.get_ylim()
 
-        # Draw a box around the bounding box
-        self.path_area_box = plt.Rectangle((xmin, ymin), xmax - xmin, ymax - ymin, fill=False, edgecolor='red')
-        ax.add_patch(self.path_area_box)
-        # Update the plot
-        plt.draw()
-
-        # Create the bounding box polygon
-        bounding_box_polygon = Polygon([(xmin, ymin), (xmax, ymin), (xmax, ymax), (xmin, ymax)])
-
-
-
-        # Plot the resulting water polygon
-        fig2, ax2 = plt.subplots(figsize=(14, 9))
-
-
-
-
-
-
-        ax2.set_xlabel('Longitude')
-        ax2.set_ylabel('Latitude')
-        ax2.grid(True, which='both', linestyle='--', linewidth=0.5)
-        ax2.set_aspect('equal')
-        ax2.set_title('Path Planning Water Area ONLY')
-        plt.show()
-
-    def reset_path_area(self, event, ax):
-        print('Path Planning Area Reset')
-        # Check if the path area box exists
-        if hasattr(self, 'path_area_box'):
-            print('Path area box exists')
-            # Remove the path area box
-            self.path_area_box.remove()
-            self.path_area_box = None  # Reset the attribute
-            print('Path area box removed')
-        else:
-            print('No path area box to reset')
-        # Update the plot
-        plt.draw()
-
+# Button Click Methods
+    # def set_path_area(self, event, ax, plot_centroids=True):
+    #     print('Path Planning Area Set')
+    #     # Get current axis limits (bounding box)
+    #     xmin, xmax = ax.get_xlim()
+    #     ymin, ymax = ax.get_ylim()
+    #
+    #     # Draw a box around the bounding box
+    #     self.path_area_box = plt.Rectangle((xmin, ymin), xmax - xmin, ymax - ymin, fill=False, edgecolor='red')
+    #     ax.add_patch(self.path_area_box)
+    #     # Update the plot
+    #     plt.draw()
+    #
+    #     # Create the bounding box polygon
+    #     bounding_box_polygon = Polygon([(xmin, ymin), (xmax, ymin), (xmax, ymax), (xmin, ymax)])
+    #
+    #
+    #
+    #     # Plot the resulting water polygon
+    #     fig2, ax2 = plt.subplots(figsize=(14, 9))
+    #
+    #
+    #
+    #
+    #
+    #
+    #     ax2.set_xlabel('Longitude')
+    #     ax2.set_ylabel('Latitude')
+    #     ax2.grid(True, which='both', linestyle='--', linewidth=0.5)
+    #     ax2.set_aspect('equal')
+    #     ax2.set_title('Path Planning Water Area ONLY')
+    #     plt.show()
+    #
+    # def reset_path_area(self, event, ax):
+    #     print('Path Planning Area Reset')
+    #     # Check if the path area box exists
+    #     if hasattr(self, 'path_area_box'):
+    #         print('Path area box exists')
+    #         # Remove the path area box
+    #         self.path_area_box.remove()
+    #         self.path_area_box = None  # Reset the attribute
+    #         print('Path area box removed')
+    #     else:
+    #         print('No path area box to reset')
+    #     # Update the plot
+    #     plt.draw()
+    #
 
 
 
@@ -280,6 +366,11 @@ if __name__ == '__main__':
     chart_us4ma23m = ShapefileHandler(shapefile_path)
     chart_us4ma23m.plot_shapefile_data()
     # Form the Water Domain from the Shapefile Read in
-    water_domain_polygon = chart_us4ma23m.make_water_polygon(showPlot=True)
+    # water_domain_polygon = chart_us4ma23m.make_water_polygon(showPlot=False)
+
     # Extract the boundary and island points from the "Water Domain"
-    boundary_points, island_points = chart_us4ma23m.extract_polygon_points(water_domain_polygon, showPlot=True)
+    # boundary_points, island_points = chart_us4ma23m.extract_polygon_points(water_domain_polygon, showPlot=False)
+    # Assign cost values to land and water
+    # cost_data = chart_us4ma23m.assign_costs(water_domain_polygon, max_resolution=0.01, boundary_resolution=0.001)
+    # print(cost_data)
+    # chart_us4ma23m.plot_costs_overlay(water_domain_polygon, cost_data)

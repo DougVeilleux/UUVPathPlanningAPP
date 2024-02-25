@@ -81,7 +81,7 @@ class UUVMissionPlannerApp:
         Callback - using the Shapefile Handler method plot_land_coordinates
         to the Tk window. Then the constructor displays the plot upon instantiation.
         """
-        self.shapefile_handler.plot_land_coordinates(self.ax)
+        self.shapefile_handler.plot_shapefile_data(self.ax)
         self.canvas.draw()
 
     # Path Planning Methods
