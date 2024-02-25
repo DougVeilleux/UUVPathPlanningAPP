@@ -1,4 +1,4 @@
-# quad_tree.py
+# quad_tree_points.py
 
 """
 Using https://en.wikipedia.org/wiki/Quadtree

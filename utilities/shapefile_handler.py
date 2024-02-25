@@ -3,7 +3,7 @@
 import geopandas as gpd
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
-from shapely.geometry import Polygon, Point, MultiPolygon
+from shapely.geometry import Polygon, Point, MultiPolygon, LineString
 from shapely.ops import cascaded_union
 from shapely.ops import unary_union
 import pandas as pd
@@ -74,7 +74,7 @@ class ShapefileHandler:
         ax.set_title('NOAA CHART DATA: US4MA23M', fontsize=20)
         # Comment out to work with Tkinter
         plt.show()
-    def get_coordinate_data(self, displayPandasGUI=False):
+    def get_coordinate_data(self, displayPandasGUI: object = False) -> object:
         """
         Debug Method to read geometry coordinates.
         Get the latitude and longitude data from each polygon in the
@@ -94,6 +94,140 @@ class ShapefileHandler:
             show(df)
         # Return dataframe
         return df
+    def linestring_from_coords_data(self, coordinate_data, interpolate=False, showPlot=False):
+        """
+        Method to take in lat / lon coordinats to return a Geodataframe of a LINESTRING
+        :param coordinate_data: coordinate data from "get_coordinate_data" method
+        :param interpolate: Flag to do interpolation
+        :param showPlot: Flag to show plot
+        :return: GeoDataframe of Linespace object(s)
+        """
+        lon_data = list(coordinate_data.loc[0, 'Longitude'])
+        lat_data = list(coordinate_data.loc[0, 'Latitude'])
+
+        if interpolate:
+            # Interpolate between points
+            interpolated_lon = []
+            interpolated_lat = []
+
+            for i in range(len(lon_data) - 1):
+                lon_start, lon_end = lon_data[i], lon_data[i + 1]
+                lat_start, lat_end = lat_data[i], lat_data[i + 1]
+
+                # Linear interpolation
+                lon_interp = [lon_start + (lon_end - lon_start) * t for t in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]]
+                lat_interp = [lat_start + (lat_end - lat_start) * t for t in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]]
+
+                interpolated_lon.extend(lon_interp)
+                interpolated_lat.extend(lat_interp)
+
+            # Combine original and interpolated points
+            lon_data.extend(interpolated_lon)
+            lat_data.extend(interpolated_lat)
+
+        # Create LineString
+        line = LineString(zip(lon_data, lat_data))
+        # Create GeoDataFrame
+        gdf = gpd.GeoDataFrame(geometry=[line])
+
+        if showPlot: # if True display the plot
+            # Plot the GeoDataFrame
+            fig = plt.figure(figsize=(14, 9))  # Adjust the width and height as needed
+            ax = fig.add_subplot(111)
+            gdf.plot(ax=ax, color='black', linewidth=1)
+
+            if interpolate: # if True overlay point
+                # Plot initial points in red
+                ax.scatter(lon_data[:len(lon_data) // 2], lat_data[:len(lat_data) // 2], color='red',
+                           label='Initial Points')
+                # Plot interpolated points in blue
+                ax.scatter(lon_data[len(lon_data) // 2:], lat_data[len(lat_data) // 2:], color='blue', marker='o',
+                           facecolor='none', label='Interpolated Points')
+
+            # vvv FORMATTING vvv
+            # Set axis labels
+            ax.set_xlabel('Longitude')
+            ax.set_ylabel('Latitude')
+            # Add grid
+            ax.grid(True, which='both', color='lightgray', linestyle='--', linewidth=0.5)
+            # Setting same scale for x and y axes
+            # ax.set_aspect('equal')
+            # Legend
+            ax.legend()
+            # Setting Title
+            ax.set_title('Coords as LineString', fontsize=20)
+            # Show plot
+            plt.show()
+
+        return gdf
+
+    def polygon_from_coords_data(self, coordinate_data, interpolate=False, showPlot=False):
+        """
+        Method to take in lat / lon coordinats to return a Geodataframe of a LINESTRING
+        :param coordinate_data: coordinate data from "get_coordinate_data" method
+        :param interpolate: Flag to do interpolation
+        :param showPlot: Flag to show plot
+        :return: GeoDataframe of Polygon object(s)
+        """
+        lon_data = list(coordinate_data.loc[18, 'Longitude'])
+        lat_data = list(coordinate_data.loc[18, 'Latitude'])
+
+        if interpolate:
+            # Interpolate between points
+            interpolated_lon = []
+            interpolated_lat = []
+
+            for i in range(len(lon_data) - 1):
+                lon_start, lon_end = lon_data[i], lon_data[i + 1]
+                lat_start, lat_end = lat_data[i], lat_data[i + 1]
+
+                # Linear interpolation
+                lon_interp = [lon_start + (lon_end - lon_start) * t for t in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]]
+                lat_interp = [lat_start + (lat_end - lat_start) * t for t in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]]
+
+                interpolated_lon.extend(lon_interp)
+                interpolated_lat.extend(lat_interp)
+
+            # Combine original and interpolated points
+            lon_data.extend(interpolated_lon)
+            lat_data.extend(interpolated_lat)
+
+        # Create LineString
+        polygon = Polygon(zip(lon_data, lat_data))
+        # Create GeoDataFrame
+        gdf = gpd.GeoDataFrame(geometry=[polygon])
+
+        if showPlot: # if True display the plot
+            # Plot the GeoDataFrame
+            fig = plt.figure(figsize=(14, 9))  # Adjust the width and height as needed
+            ax = fig.add_subplot(111)
+            gdf.plot(ax=ax, color='tan', linewidth=1, edgecolor='black')
+
+            if interpolate: # if True overlay point
+                # Plot initial points in red
+                ax.scatter(lon_data[:len(lon_data) // 2], lat_data[:len(lat_data) // 2], color='red',
+                           label='Initial Points')
+                # Plot interpolated points in blue
+                ax.scatter(lon_data[len(lon_data) // 2:], lat_data[len(lat_data) // 2:], color='blue', marker='o',
+                           facecolor='none', label='Interpolated Points')
+
+            # vvv FORMATTING vvv
+            # Set axis labels
+            ax.set_xlabel('Longitude')
+            ax.set_ylabel('Latitude')
+            # Add grid
+            ax.grid(True, which='both', color='gray', linestyle='--', linewidth=0.5)
+            # Setting same scale for x and y axes
+            # ax.set_aspect('equal')
+            # Legend
+            ax.legend()
+            # Setting Title
+            ax.set_title('Coords as LineString', fontsize=20)
+            # Show plot
+            plt.show()
+
+        return gdf
+
     def make_water_polygon(self, showPlot=False):
         """
         Using the latitude and longitude coordinates of the data create a single
@@ -133,7 +267,7 @@ class ShapefileHandler:
             ax.set_xlabel('Longitude')
             ax.set_ylabel('Latitude')
             # Add grid
-            ax.grid(True, which='both', color='red', linestyle='--', linewidth=0.5)
+            ax.grid(True, which='both', color='lightgray', linestyle='--', linewidth=0.5)
             # Setting same scale for x and y axes
             # ax.set_aspect('equal')
             # Setting Title
@@ -364,7 +498,7 @@ if __name__ == '__main__':
     )
 
     chart_us4ma23m = ShapefileHandler(shapefile_path)
-    chart_us4ma23m.plot_shapefile_data()
+    # chart_us4ma23m.plot_shapefile_data()
     # Form the Water Domain from the Shapefile Read in
     # water_domain_polygon = chart_us4ma23m.make_water_polygon(showPlot=False)
 
@@ -374,3 +508,44 @@ if __name__ == '__main__':
     # cost_data = chart_us4ma23m.assign_costs(water_domain_polygon, max_resolution=0.01, boundary_resolution=0.001)
     # print(cost_data)
     # chart_us4ma23m.plot_costs_overlay(water_domain_polygon, cost_data)
+
+    coords = chart_us4ma23m.get_coordinate_data()
+    # print(coords)
+    # print(type(coords))
+
+    line_string_data = chart_us4ma23m.polygon_from_coords_data(coords, interpolate=False, showPlot=True)
+    print(type(line_string_data))
+    print(line_string_data)
+
+
+
+## Estimate
+
+import math
+
+def haversine(lon1, lat1, lon2, lat2):
+    """
+    Calculate the great circle distance between two points
+    on the earth (specified in decimal degrees)
+    """
+    # Convert decimal degrees to radians
+    lon1, lat1, lon2, lat2 = map(math.radians, [lon1, lat1, lon2, lat2])
+
+    # Haversine formula
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+    a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    # Radius of the Earth in kilometers
+    R = 6371
+    # Calculate the distance
+    distance = R * c * 1000  # Convert to meters
+    return distance
+
+# Coordinates for the two points
+lon1, lat1 = -71.244, 41.2
+lon2, lat2 = -71.242, 41.2
+
+# Calculate the distance
+distance_meters = haversine(lon1, lat1, lon2, lat2)
+print("Distance between the two points:", distance_meters, "meters")
