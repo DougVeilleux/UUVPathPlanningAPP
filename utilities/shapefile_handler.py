@@ -3,7 +3,7 @@
 import geopandas as gpd
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
-from shapely.geometry import Polygon, Point, MultiPolygon, LineString
+from shapely.geometry import Polygon, Point, MultiPolygon, LineString, box
 from shapely.ops import cascaded_union
 from shapely.ops import unary_union
 import pandas as pd
@@ -28,6 +28,7 @@ class ShapefileHandler:
         Reads Shapefile with gpd.read()
         """
         self.data = gpd.read_file(self.shapefile_path)
+
     def plot_shapefile_data(self, plot_centroids=False, ax=None):
         """
         Plot Shapefile data to confirm data read in correctly
@@ -74,6 +75,7 @@ class ShapefileHandler:
         ax.set_title('NOAA CHART DATA: US4MA23M', fontsize=20)
         # Comment out to work with Tkinter
         plt.show()
+
     def get_coordinate_data(self, displayPandasGUI: object = False) -> object:
         """
         Debug Method to read geometry coordinates.
@@ -94,6 +96,7 @@ class ShapefileHandler:
             show(df)
         # Return dataframe
         return df
+
     def linestring_from_coords_data(self, coordinate_data, interpolate=False, showPlot=False):
         """
         Method to take in lat / lon coordinats to return a Geodataframe of a LINESTRING
@@ -276,6 +279,80 @@ class ShapefileHandler:
             plt.show()
 
         return water_domain
+
+    def make_land_polygon(self, showPlot=True, bounding_box=None):
+        """
+        Using the latitude and longitude coordinates of the data create a single
+        Polygon (the land) by unifying the Land Polygons from to one Multipolygon
+        :return: Polygon of only the land.
+        """
+        # Data check
+        if self.data is None:
+            print("Shapefile data not loaded. Call read_shapefile() first.")
+            return
+
+        offset = 0.000  # Define the offset value
+        # Calculate the new coordinates for the bounding box with inward offset
+        # This offset helps clean up small gaps causing difficulty in completing
+        # the subtraction of all polygons.
+        min_lon, max_lon = self.data.bounds.minx.min() + offset, self.data.bounds.maxx.max() - offset
+        min_lat, max_lat = self.data.bounds.miny.min() + offset, self.data.bounds.maxy.max() - offset
+
+        bounding_polygon = gpd.GeoDataFrame(geometry=[Polygon([(min_lon, min_lat), (max_lon, min_lat),
+                                                               (max_lon, max_lat), (min_lon, max_lat)])])
+
+        # Take in the shapefile data geometry and set as the land
+        land_polygons = gpd.GeoDataFrame(geometry=self.data['geometry'])
+
+        # Filter land polygons based on bounding box if provided
+        if bounding_box:
+            land_polygons = land_polygons[land_polygons.intersects(bounding_box)]
+            # Recalculate the bounding_polygon based on the limits of filtered land_polygons
+            filtered_min_lon, filtered_max_lon = land_polygons.total_bounds[0], land_polygons.total_bounds[2]
+            filtered_min_lat, filtered_max_lat = land_polygons.total_bounds[1], land_polygons.total_bounds[3]
+
+            # Adjust the bounding_polygon edges with an additional offset
+            extra_offset = 0.008
+            filtered_min_lon = min_lon if round(filtered_min_lon, 4) == round(min_lon,
+                                                                              4) else filtered_min_lon - extra_offset
+            filtered_min_lat = min_lat if round(filtered_min_lat, 4) == round(min_lat,
+                                                                              4) else filtered_min_lat - extra_offset
+            filtered_max_lon = max_lon if round(filtered_max_lon, 4) == round(max_lon,
+                                                                              4) else filtered_max_lon + extra_offset
+            filtered_max_lat = max_lat if round(filtered_max_lat, 4) == round(max_lat,
+                                                                              4) else filtered_max_lat + extra_offset
+
+            # Recreate bounding_polygon with the adjusted edges
+            bounding_polygon = gpd.GeoDataFrame(geometry=[Polygon([(filtered_min_lon, filtered_min_lat), (filtered_max_lon, filtered_min_lat),
+                                                                   (filtered_max_lon, filtered_max_lat), (filtered_min_lon, filtered_max_lat)])])
+
+        # Calculate the water domain
+        land_domain = land_polygons.unary_union
+        # Convert into GeoSeires to stay consistent with other code use
+        land_domain_series = gpd.GeoSeries([land_domain])
+
+        # Plot the updated water polygon
+        if showPlot:
+            fig, ax = plt.subplots(figsize=(14, 9))
+            bounding_polygon.plot(ax=ax, color='lightblue', edgecolor='black')
+            land_domain_series.plot(ax=ax, color='tan', edgecolor='black')
+
+            # vvv FORMATTING vvv
+            # Set axis labels
+            ax.set_xlabel('Longitude')
+            ax.set_ylabel('Latitude')
+            # Add grid
+            ax.grid(True, which='both', color='darkgray', linestyle='--', linewidth=0.5)
+            # Setting same scale for x and y axes
+            # ax.set_aspect('equal')
+            # Setting Title
+            ax.set_title('Land Polygons -> Single MultiPolygon', fontsize=20)
+            # Show plot
+            plt.show()
+
+        return land_domain_series
+
+
     def extract_polygon_points(self, polygon, showPlot=False):
         """
         Extracts boundary and island points of a polygon or MultiPolygon.
@@ -323,6 +400,7 @@ class ShapefileHandler:
             plt.show()
 
         return boundary_points, island_points
+
     def _extract_polygon_points(self, polygon):
         """
         Helper method to extract boundary and island points of a single polygon.
@@ -332,6 +410,7 @@ class ShapefileHandler:
         for interior in polygon.interiors:
             island_points.extend(list(interior.coords))
         return boundary_points, island_points
+
     def assign_costs(self, water_polygon, max_resolution=0.1, boundary_resolution=0.001):
         """
         Assigns a cost of ZERO to all the latitude / longitude coordinates within the
@@ -513,39 +592,9 @@ if __name__ == '__main__':
     # print(coords)
     # print(type(coords))
 
-    line_string_data = chart_us4ma23m.polygon_from_coords_data(coords, interpolate=False, showPlot=True)
-    print(type(line_string_data))
-    print(line_string_data)
-
-
-
-## Estimate
-
-import math
-
-def haversine(lon1, lat1, lon2, lat2):
-    """
-    Calculate the great circle distance between two points
-    on the earth (specified in decimal degrees)
-    """
-    # Convert decimal degrees to radians
-    lon1, lat1, lon2, lat2 = map(math.radians, [lon1, lat1, lon2, lat2])
-
-    # Haversine formula
-    dlon = lon2 - lon1
-    dlat = lat2 - lat1
-    a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-    # Radius of the Earth in kilometers
-    R = 6371
-    # Calculate the distance
-    distance = R * c * 1000  # Convert to meters
-    return distance
-
-# Coordinates for the two points
-lon1, lat1 = -71.244, 41.2
-lon2, lat2 = -71.242, 41.2
-
-# Calculate the distance
-distance_meters = haversine(lon1, lat1, lon2, lat2)
-print("Distance between the two points:", distance_meters, "meters")
+    # Create a Selection box Manually for not.  Eventually this will come from mouse interaction
+    x1, y1, x2, y2 = -70.8714, 41.573, -70.7866, 41.6372
+    bounding_box = box(x1, y1, x2, y2)
+    land_domain = chart_us4ma23m.make_land_polygon(showPlot=True, bounding_box=bounding_box)
+    print(type(land_domain))
+    print(land_domain)

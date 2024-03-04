@@ -21,7 +21,7 @@ if __name__ == '__main__':
 
 
     # Instantiate a QuadTree with the water domain polygon and the desired node length
-    quad_tree = QuadTree(domain_data, node_length=0.00005)
+    quad_tree = QuadTree(domain_data, node_length=0.01)
 
     quad_tree.build_quadtree()
     quad_tree.visualize_quadtree()
