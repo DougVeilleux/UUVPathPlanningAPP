@@ -7,18 +7,17 @@ import pickle
 from utilities.quad_tree_geodata_multipolygon import *
 
 
-class AStar:
-    def __init__(self, quadtree_data):
-        self.quadtree_data = quadtree_data
+class AStarPathPlanner:
+    def __init__(self, quadtree):
+        self.quadtree = quadtree
 
-    # Deserialize quad tree data structure from a file with specified file path
+    def heuristic(self, node, goal_node):
+        """
+        Calculate the Euclidean distance
+        """
+        return math.sqrt((node.latitude - goal_node.latitude)**2 + (node.longitude - goal_node.longitude)**2)
 
 
-
-
-
-    def heuristic(self, node, goal):
-        return math.sqrt((node.lat - goal.lat) ** 2 + (node.long - goal.long) ** 2)
 
     def astar(self, start, goal):
         open_set = []
@@ -58,8 +57,8 @@ class AStar:
 
 def deserialize_quad_tree(file_path):
     with open(file_path, 'rb') as f:
-        quad_tree = pickle.load(f)
-    return quad_tree
+        quadtree = pickle.load(f)
+    return quadtree
 
 if __name__ == '__main__':
     # Load QuadTree Data
@@ -67,23 +66,69 @@ if __name__ == '__main__':
     '/Users/dougveilleux/Documents/GitHub/UUVPathPlanningApp/'
     'data/quad_tree/west_island_fine.qtdata'
     )
-    quad_tree_data = deserialize_quad_tree(quadtree_data_path)
-    print(type(quad_tree_data))
-    print(quad_tree_data)
-    quad_tree_data.visualize_quadtree()
+    quadtree_data = deserialize_quad_tree(quadtree_data_path)
+    print(type(quadtree_data))
+    print(quadtree_data)
+    quadtree_data.visualize_quadtree()
 
 
+    def count_nodes(node):
+        if node is None:
+            return 0
+        # Count the current node and recursively count the nodes in its children
+        return 1 + count_nodes(node.northWest) + count_nodes(node.northEast) + count_nodes(
+            node.southEast) + count_nodes(node.southWest)
+    # Example usage:
+    total_nodes = count_nodes(quadtree_data.root)
+    print("Total number of nodes:", total_nodes, "\n")
 
 
-    # root = QuadTreeNode(0, 0, 1)  # Assuming initial root node is land
-    # quadtree = QuadTree(root)
-    # start = QuadTreeNode(start_lat, start_long, 1)  # Assuming start point is on land
-    # end = QuadTreeNode(end_lat, end_long, 1)  # Assuming end point is on land
-    #
-    # astar = AStar(quadtree)
-    # path = astar.astar(start, end)
-    #
-    # if path:
-    #     print("Path found:", path)
-    # else:
-    #     print("No path found.")
+    # Accessing node data
+    def print_node(node):
+        # Check if the node is not None before accessing its attributes
+        if node is not None:
+            print(f"Latitude: {node.latitude}, Longitude: {node.longitude}, Is Land: {node.landOrWater}")
+
+    def traverse_quadtree(node):
+        # Base case: If the node is None, return
+        if node is None:
+            return
+        # Print attributes of the current node
+        print_node(node)
+        # Recursively traverse the children of the current node
+        traverse_quadtree(node.northWest)
+        traverse_quadtree(node.northEast)
+        traverse_quadtree(node.southEast)
+        traverse_quadtree(node.southWest)
+
+
+    # Example usage:
+    NODES = traverse_quadtree(quadtree_data.root)
+
+
+    def plot_node(node, ax):
+        # Plot the node point
+        ax.plot(node.longitude, node.latitude, c='tan' if node.landOrWater == 1 else 'blue', marker='o', markersize=1)
+
+    def plot_quadtree(node, ax):
+        # Base case: If the node is None, return
+        if node is None:
+            return
+        # Plot the node point
+        plot_node(node, ax)
+        # Recursively plot the children of the current node
+        plot_quadtree(node.northWest, ax)
+        plot_quadtree(node.northEast, ax)
+        plot_quadtree(node.southEast, ax)
+        plot_quadtree(node.southWest, ax)
+
+    # Create a new figure and axis for plotting
+    fig, ax = plt.subplots(figsize=(14,9))
+    # Plot the quadtree nodes
+    plot_quadtree(quadtree_data.root, ax)
+    # Set labels and title
+    ax.set_xlabel('Longitude')
+    ax.set_ylabel('Latitude')
+    ax.set_title('Quadtree Node Points')
+    # Show the plot
+    plt.show()

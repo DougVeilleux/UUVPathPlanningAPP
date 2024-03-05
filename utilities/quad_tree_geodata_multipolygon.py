@@ -1,19 +1,19 @@
 # quad_tree_geodata_multipolygon.py
-import copy
+"""
+D. Veilleux, Feb. 2024
+
+Contained within are classes to create a quad tree data structure to
+    represent land / water boundary information when a GeoSeries
+    Multipolygon is provided.
+Methods to process, display and write quad tree to a file are included.
+
+"""
+
 import time
-import geopandas as gpd
-import matplotlib.pyplot as plt
-import pandas as pd
 import pickle
-from shapely.geometry import Polygon, MultiPolygon, Point, LineString, MultiLineString, box
-from shapely.ops import unary_union
-from matplotlib.patches import Polygon as MatplotlibPolygon
 from geopy.distance import geodesic
 from shapely.ops import nearest_points
 from utilities.shapefile_handler import *
-
-
-
 
 class QuadTreeNode:
     """
@@ -23,14 +23,18 @@ class QuadTreeNode:
                landOrWater, int - land / water classifier.  If =0-> water, if =1->land
     Attributes:
         northWest...southWest: represent children of the node in the four quadrants
+        min_x, max_x, min_y, max_y are the bounds of the node
+        latitude and longitude are the center of the node
         is_leaf: indicates whether the node is a leaf node (i.e. no children)
         is_boundary: indicates whether the node lies on the boundary of the data region
          (e.g. a water / land boundary)
     """
     def __init__(self, domain_data, landOrWater=None):
         self.domain_data = domain_data
-        self.min_x, self.min_y, self.max_x, self.max_y = self.calculate_bounds()
         self.landOrWater = landOrWater
+        self.min_x, self.min_y, self.max_x, self.max_y = self.calculate_bounds()
+        self.longitude = (self.min_x + self.max_x) / 2
+        self.latitude = (self.min_y + self.max_y) / 2
         self.northWest = None
         self.northEast = None
         self.southEast = None
@@ -44,32 +48,6 @@ class QuadTreeNode:
             call this will be run at each new QuadTreeNode instantiation.
             Looking for a GeoDataFrame Type
         """
-        # if isinstance(self.domain_data, gpd.GeoDataFrame):
-        #     # Extract geometries from the 'geometry' column
-        #     geometries = self.domain_data['geometry']
-        #     # Merge all geometries into a single MultiPolygon or MultiLineString
-        #     merged_geometry = unary_union(geometries)
-        #     bounds = merged_geometry.bounds
-        #     # Check for boundary intersection
-        #     node_boundary = Polygon([(bounds[0], bounds[1]), (bounds[2], bounds[1]),
-        #                              (bounds[2], bounds[3]), (bounds[0], bounds[3])])
-        #     self.is_boundary = node_boundary.intersects(merged_geometry)
-        #     return bounds
-        # elif isinstance(self.domain_data, gpd.GeoSeries):
-        #     # Calculate bounds for each MultiPolygon in the GeoSeries
-        #     min_x = min_y = float('inf')
-        #     max_x = max_y = float('-inf')
-        #     for polygon in self.domain_data:
-        #         poly_bounds = polygon.bounds
-        #         min_x = min(min_x, poly_bounds[0])
-        #         min_y = min(min_y, poly_bounds[1])
-        #         max_x = max(max_x, poly_bounds[2])
-        #         max_y = max(max_y, poly_bounds[3])
-        #     return min_x, min_y, max_x, max_y
-        # else:
-        #     print("Unknown geometry type:", type(self.domain_data))
-        #     return 0, 0, 0, 0
-
         if isinstance(self.domain_data, gpd.GeoDataFrame):
             bounds = self.domain_data.bounds
             min_x = bounds['minx'].min()
@@ -121,8 +99,6 @@ class QuadTreeNode:
         # Update leaf status
         self.is_leaf = False
 
-
-
 class QuadTree:
     """
     Class to form QuadTree data structure of the land / water boundary
@@ -133,7 +109,8 @@ class QuadTree:
             @ lat of 0 deg
             note - 100m resolution ~= 0.001
                  - 500m resolution ~= 0.005
-                 - 1000m resolution ~= 0.0001
+                 - ~10m resolution ~= 0.0001
+                 - ~42m resolution ~= 0.0005
             @ lat of 41 deg about 15-20% less than above
 
     """
@@ -483,13 +460,13 @@ if __name__ == '__main__':
     # Create a Selection box Manually for now.  Eventually this will come from mouse interaction
     x1, y1, x2, y2 = -70.8714, 41.573, -70.7866, 41.6372
     bounding_box = box(x1, y1, x2, y2)
-    domain_data = chart_us4ma23m.make_land_polygon(showPlot=False, bounding_box=bounding_box)
+    domain_data = chart_us4ma23m.make_land_polygon(showPlot=True, bounding_box=bounding_box)
     print(type(domain_data))
     print(domain_data)
     print("Bounding dimensions of domain_data before quadtree:", domain_data.total_bounds)
 
     # Instantiate a QuadTree with the domain data polygon and the desired node lengths
-    quad_tree = QuadTree(domain_data, node_length_near_boundary=0.0005, node_length_far_from_boundary=0.03)
+    quad_tree = QuadTree(domain_data, node_length_near_boundary=0.0001, node_length_far_from_boundary=0.01)
 
     # Build the Quad Tree
     # Start time
@@ -503,7 +480,6 @@ if __name__ == '__main__':
     # Visualize the Quad Tree
     quad_tree.visualize_quadtree()
 
-
     # Classify the nodes and Land or Water
     # Start time
     start_time = time.time()
@@ -512,9 +488,6 @@ if __name__ == '__main__':
     end_time = time.time()
     elapsed_time = end_time - start_time
     print("Nodes Classified in:", elapsed_time, "seconds\n")
-
-
-
 
     # Collect the nodes and plot to confirm classification worked
     # Start time
@@ -527,9 +500,6 @@ if __name__ == '__main__':
     # plot node data
     # quad_tree.plot_node_data(node_dataframe)
 
-
-
-
     # Delete unnecessary land nodes to reduce data set
     # Start time
     start_time = time.time()
@@ -541,8 +511,6 @@ if __name__ == '__main__':
     # plot node to confirm deletion
     # quad_tree.plot_node_data_after_deletion()
     quad_tree.write_serialize_quad_tree('west_island_fine.qtdata')
-
-
 
     # Visualize the Quad Tree (after node deletion)
     quad_tree.visualize_quadtree()
