@@ -22,50 +22,55 @@ class AStarPathPlanner:
         """
         return math.sqrt((node.latitude - goal_node.latitude)**2 + (node.longitude - goal_node.longitude)**2)
 
-    def astar_plan_path(self, start, goal):
+    def astar_plan_path(self, start_point, goal_point):
         """
         This method contains the Astar method
         Parameter: start: (Longitude, Latitude) Point
                  : goal: (Longitude, Latitude) Point
         Returns: Path
         """
+        start_node = self.find_node(start_point)
+        goal_node = self.find_node(goal_point)
+
+        if start_node is None or goal_node is None:
+            return None
+
         open_set = []
-        heapq.heappush(open_set, (0, start))
+        heapq.heappush(open_set, (0, start_node))
         came_from = {}
-        g_score = {start: 0}
+        g_score = {start_node: 0}
 
         while open_set:
             _, current = heapq.heappop(open_set)
 
-            if current == goal:
+            if current == goal_node:
                 path = []
                 while current in came_from:
                     path.append(current)
                     current = came_from[current]
-                path.append(start)
+                path.append(start_node)
                 path.reverse()
                 return path
 
-            for neighbor in self.get_neighbors(current):
-                tentative_g_score = g_score[current] + 1
+        for neighbor in self.get_neighbors(current):
+            tentative_g_score = g_score[current] + 1
 
-                if tentative_g_score < g_score.get(neighbor, math.inf):
-                    came_from[neighbor] = current
-                    g_score[neighbor] = tentative_g_score
-                    f_score = tentative_g_score + self.heuristic(neighbor, goal)
-                    heapq.heappush(open_set, (f_score, neighbor))
+            if tentative_g_score < g_score.get(neighbor, math.inf):
+                came_from[neighbor] = current
+                g_score[neighbor] = tentative_g_score
+                f_score = tentative_g_score + self.heuristic(neighbor, goal_node)
+                heapq.heappush(open_set, (f_score, neighbor))
 
         return None
 
+
+
     def get_neighbors(self, node):
         """
-        Get neighboring nodes of the given node from the quadtree
+        Get neighboring nodes of the given node from the quadtree and use the
+        landOrWater value determine if this neighbor is a viable option to move.
         """
         neighbors = []
-        # You need to implement logic to traverse the quadtree efficiently here
-        # You should consider the landOrWater parameter to determine valid neighboring nodes
-        # Here's a basic idea, but you may need to adjust based on your quadtree implementation
-
         # Check neighboring quadrants
         if node.northWest and node.northWest.landOrWater == 0:
             neighbors.append(node.northWest)
@@ -78,13 +83,27 @@ class AStarPathPlanner:
 
         return neighbors
 
-    def process_path(self):
+    def find_node(self, point):
         """
-        Method to process path data from astar_plan_path?
-        Not sure this is needed but might need to format the returned path
-            to overlay onto the GUI chart.  PLACE HOLDER FOR NOW
-        Return: processes path in desired data format (Maybe Geopandas Dataframe)?
+        Traverse the quadtree to find the node containing the given point
         """
+        return self._find_node_recursive(self.quadtree.root, point)
+
+    def _find_node_recursive(self, node, point):
+        """
+        Recursively find the node containing the given point
+        """
+        # Check if the node is a leaf
+        if node.is_leaf:
+            return node if node.contains_point(point) else None
+        # traverse in if not a leaf
+        for child in [node.northWest, node.northEast, node.southWest, node.southEast]:
+            if child.contains_point(point):
+                return self._find_node_recursive(child, point)
+
+        return None
+
+
 
 
 
@@ -114,20 +133,24 @@ if __name__ == '__main__':
     # Visualize Quad Tree Data
     # quadtree_data.visualize_quadtree()
 
+    # node_data = quadtree_data.collect_node_data()
+    # print(node_data)
 
     # Define Start and Goal Points
     """
-    Define these intially as hard code start and goal points.  Once working
+    Define these initially as hard code start and goal points.  Once working
         clicks from the GUI Map will set the points from event handlers.
     """
-    startPoint = 'Mission Start Location'
-    goalPoint = 'Goal Location Where Survey Begins From'
+    startPoint = (-70.84094, 41.58692)
+    goalPoint = (-70.81589, 41.62664)
+    print(startPoint)
 
     # Load Quad Data into AStarPathPlanner Class
     uuvIngressPath = AStarPathPlanner(quadtree_data)
 
     # Plan the Path
-    #uuvIngressPath.astar_plan_path(startPoint, goalPoint)
+    path = uuvIngressPath.astar_plan_path(startPoint, goalPoint)
+    print(path)
 
 
 

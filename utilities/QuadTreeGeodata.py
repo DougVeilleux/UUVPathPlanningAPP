@@ -99,6 +99,12 @@ class QuadTreeNode:
         # Update leaf status
         self.is_leaf = False
 
+    def contains_point(self, point):
+        """
+        Check if the given point lies within the bounds of this node.
+        """
+        x, y = point
+        return self.min_x <= x <= self.max_x and self.min_y <= y <= self.max_y
 class QuadTree:
     """
     Class to form QuadTree data structure of the land / water boundary
@@ -260,16 +266,20 @@ class QuadTree:
         """
         node_data = []
         self._collect_node_data_recursive(self.root, node_data)
-        return pd.DataFrame(node_data, columns=['min_x', 'min_y', 'max_x', 'max_y', 'landOrWater'])
+        return pd.DataFrame(node_data, columns=['longitude', 'latitude', 'min_x', 'min_y', 'max_x', 'max_y', 'landOrWater'])
 
     def _collect_node_data_recursive(self, node, node_data):
         """
         Recursively collect node coordinates and landOrWater classification values.
         """
+        # Calculate longitude and latitude
+        longitude = (node.min_x + node.max_x) / 2
+        latitude = (node.min_y + node.max_y) / 2
+
         # Check if the node is a leaf node
         if node.is_leaf:
             # Append node coordinates and landOrWater value to node_data list
-            node_data.append([node.min_x, node.min_y, node.max_x, node.max_y, node.landOrWater])
+            node_data.append([longitude, latitude, node.min_x, node.min_y, node.max_x, node.max_y, node.landOrWater])
         else:
             # If the node is not a leaf node, collect data for its children recursively
             for child in [node.northWest, node.northEast, node.southWest, node.southEast]:
@@ -475,7 +485,7 @@ if __name__ == '__main__':
     print("Bounding dimensions of domain_data before quadtree:", domain_data.total_bounds)
 
     # Instantiate a QuadTree with the domain data polygon and the desired node lengths
-    quad_tree = QuadTree(domain_data, node_length_near_boundary=0.005, node_length_far_from_boundary=0.01)
+    quad_tree = QuadTree(domain_data, node_length_near_boundary=0.0001, node_length_far_from_boundary=0.01)
 
     # Build the Quad Tree
     # Start time
@@ -518,8 +528,8 @@ if __name__ == '__main__':
     elapsed_time = end_time - start_time
     print("Land Nodes Deleted in:", elapsed_time, "seconds\n")
     # plot node to confirm deletion
-    quad_tree.plot_node_data_after_deletion()
-    quad_tree.write_serialize_quad_tree('west_island_coarse.qtdata')
+    # quad_tree.plot_node_data_after_deletion()
+    quad_tree.write_serialize_quad_tree('west_island_fine.qtdata')
 
     # Visualize the Quad Tree (after node deletion)
     quad_tree.visualize_quadtree()
