@@ -25,6 +25,7 @@ class QuadTreeNode:
         northWest...southWest: represent children of the node in the four quadrants
         min_x, max_x, min_y, max_y are the bounds of the node
         latitude and longitude are the center of the node
+        point: (longitude, latitude) tuple representing the center of the node
         is_leaf: indicates whether the node is a leaf node (i.e. no children)
         is_boundary: indicates whether the node lies on the boundary of the data region
          (e.g. a water / land boundary)
@@ -105,6 +106,11 @@ class QuadTreeNode:
         """
         x, y = point
         return self.min_x <= x <= self.max_x and self.min_y <= y <= self.max_y
+
+    def __str__(self):
+        return f"Node: ({self.longitude}, {self.latitude}), Leaf: {self.is_leaf}"
+
+
 class QuadTree:
     """
     Class to form QuadTree data structure of the land / water boundary
@@ -485,7 +491,7 @@ if __name__ == '__main__':
     print("Bounding dimensions of domain_data before quadtree:", domain_data.total_bounds)
 
     # Instantiate a QuadTree with the domain data polygon and the desired node lengths
-    quad_tree = QuadTree(domain_data, node_length_near_boundary=0.0001, node_length_far_from_boundary=0.01)
+    quad_tree = QuadTree(domain_data, node_length_near_boundary=0.005, node_length_far_from_boundary=0.01)
 
     # Build the Quad Tree
     # Start time
@@ -529,9 +535,10 @@ if __name__ == '__main__':
     print("Land Nodes Deleted in:", elapsed_time, "seconds\n")
     # plot node to confirm deletion
     # quad_tree.plot_node_data_after_deletion()
-    quad_tree.write_serialize_quad_tree('west_island_fine.qtdata')
+    quad_tree.write_serialize_quad_tree('west_island_coarse.qtdata')
 
     # Visualize the Quad Tree (after node deletion)
     quad_tree.visualize_quadtree()
+    print(quad_tree.collect_node_data())
 
 
