@@ -12,6 +12,8 @@ Methods to process, display and write quad tree to a file are included.
 import time
 import pickle
 import math
+
+import matplotlib.pyplot as plt
 from geopy.distance import geodesic
 from shapely.ops import nearest_points
 from utilities.ShapefileHandler import *
@@ -333,44 +335,72 @@ class QuadTree:
                     # Set node as boundary if it's not adjacent to water
                     node.is_boundary = True
 
-    def find_closest_node(self, point):
+    def find_closest_node(self, point, search_radius=0.015):
         """
-        Find the closest node in the quadtree to the given point.  Will be needed when
-            user interacts with chart selecting start and goal points
+        Find the closest node in the quadtree to the given point within a search radius.
         :param point: the coordinate (longitude, latitude)
-        :return: closest node the point
+        :param search_radius: the radius within which to search for the closest node
+        :return: closest node within the search radius
         """
-        return self._find_closest_node_recursive(self.root, point, float('inf'))
+        search_region = (
+            point[0] - search_radius,  # left
+            point[1] - search_radius,  # bottom
+            point[0] + search_radius,  # right
+            point[1] + search_radius  # top
+        )
+        search_region_nodes = self._find_closest_node_recursive(self.root, point, search_region)
 
-    def _find_closest_node_recursive(self, node, point, min_distance, closest_node=None):
+        # Calculate the Euclidean distance between each node and the given point
+        min_distance = float('inf')
+        closest_node = None
+        for node in search_region_nodes:
+            distance = math.sqrt((node.longitude - point[0]) ** 2 + (node.latitude - point[1]) ** 2)
+            if distance < min_distance:
+                min_distance = distance
+                closest_node = node
+
+        return closest_node, search_region_nodes, search_region
+
+    def _find_closest_node_recursive(self, node, point, search_region, nodes=None):
         """
-        Recursively find the closest node in the quad tree to the given point.
-        :param node:
+        Recursively find the closest node in the quadtree to the given point within the search region.
+        :param node: the current node being considered
         :param point: the coordinate (longitude, latitude)
+        :param search_region: the region within which to search for the closest node
         :param min_distance: min distance to the node in decimal degrees
-        :return: closest node
+        :return: closest node within the search region
         """
-        # Initialize closest_node variable if not provided
-        if closest_node is None:
-            closest_node = node
 
-        # Calculate the distance between the point and the centroid of the current node
-        distance = math.sqrt((node.latitude - point[1]) ** 2 + (node.longitude - point[0]) ** 2)
+        # Check if the bounding box of the node intersects with the search region
+        if nodes is None:
+            nodes = []
 
-        # print("Node:", node.longitude, node.latitude)
-        # print("Distance:", distance)
+        if self._intersects_search_region(node, search_region):
+            nodes.append(node)
 
-        # Update the closest node if the current node is closer
-        if distance < min_distance:
-            min_distance = distance
-            closest_node = node
+            # Check if the node is a leaf node
+            if node.northWest is None:
+                return nodes
 
-        # Otherwise, recursively search in the child nodes
+        # Recursively search in the child nodes
         for child in [node.northWest, node.northEast, node.southWest, node.southEast]:
             if child:
-                closest_node = self._find_closest_node_recursive(child, point, min_distance, closest_node)
+                self._find_closest_node_recursive(child, point, search_region, nodes)
 
-        return closest_node
+        return nodes
+
+    def _intersects_search_region(self, node, search_region):
+        """
+        Check if the node intersects with the given search region.
+        :param node: the node to check for intersection
+        :param search_region: the search region defined by (left, bottom, right, top)
+        :return: True if the node intersects the search region, False otherwise
+        """
+
+        # Check if the bounding box of the node intersects with the search region
+        intersects = (node.longitude >= search_region[0] and node.longitude <= search_region[2] and
+                      node.latitude >= search_region[1] and node.latitude <= search_region[3])
+        return intersects
 
     def get_neighbors(self, target_node):
         """
@@ -557,6 +587,70 @@ class QuadTree:
         else:
             print("Node data is not available after deletion.")
 
+    def plot_nearest_node(self, start_point, goal_point, start_closest_node, goal_closest_node,
+                          start_collected_nodes, goal_collected_nodes,
+                          start_search_region, goal_search_region):
+        """
+        Plot the nearest node along with the start and goal points.
+        :param point: Coordinates of the point (longitude, latitude)
+        :param collected_nodes: List collected nodes within the search region
+        :param closest_node: the closest node to the start point
+        """
+
+        # Collect node data after deletion (assuming you have a method for this)
+        final_node_dataframe = self.collect_node_data()
+
+        # Check if final_node_dataframe is not None (ensure deletion step was successful)
+        if final_node_dataframe is not None:
+            # Plot nodes
+            fig, ax = plt.subplots(figsize=(14, 9))
+            for index, row in final_node_dataframe.iterrows():
+                # Extract node coordinates
+                min_x, min_y, max_x, max_y = row['min_x'], row['min_y'], row['max_x'], row['max_y']
+                mid_x = (min_x + max_x) / 2
+                mid_y = (min_y + max_y) / 2
+                # Extract landOrWater value
+                land_or_water = row['landOrWater']
+                # Plot center point of the node
+                ax.scatter(mid_x, mid_y, c='tan' if land_or_water == 1 else 'blue', marker='o', s=10)
+
+            # Plot points (green / red)
+            ax.scatter(start_point[0], start_point[1], c='green', marker='*', s=150, label='Start Point')
+            ax.scatter(goal_point[0], goal_point[1], c='red', marker='*', s=150, label='Goal Point')
+
+            # Plot collected nodes
+            for node in start_collected_nodes:
+                ax.scatter(node.longitude, node.latitude, facecolor='none', edgecolor='gray',
+                           linestyle='--', marker='o', s=150)
+            for node in goal_collected_nodes:
+                ax.scatter(node.longitude, node.latitude, facecolor='none', edgecolor='gray',
+                           linestyle='--', marker='o', s=150)
+
+            # Plot search region
+            left, bottom, right, top = start_search_region
+            plt.plot([left, left, right, right, left], [bottom, top, top, bottom, bottom], linestyle='--',
+                     color='green', label='Start Search Region')
+            left, bottom, right, top = goal_search_region
+            plt.plot([left, left, right, right, left], [bottom, top, top, bottom, bottom], linestyle='--',
+                     color='red', label='Goal Search Region')
+
+            # Plot closest node (green / red)
+            ax.scatter(start_closest_node.longitude, start_closest_node.latitude, facecolor='none', edgecolor='green',
+                       marker='o', linewidth=3.0, s=150, label='Start Closest Node')
+            ax.scatter(goal_closest_node.longitude, goal_closest_node.latitude, facecolor='none', edgecolor='red',
+                       marker='o', linewidth=3.0, s=150, label='Goal Closest Node')
+
+            ax.set_aspect('equal', 'box')
+            ax.set_xlabel('Longitude')  # Set the x-axis label to 'Longitude'
+            ax.set_ylabel('Latitude')  # Set the y-axis label to 'Latitude'
+            ax.set_title('Node Data with Start & Goal Points and Closest Calculated Start & Goal Nodes')
+            ax.legend(loc='upper center')
+            plt.show()
+
+        else:
+            print("Node data is not available after deletion.")
+
+
 
 ##=========================================================================================##
 if __name__ == '__main__':
@@ -577,7 +671,7 @@ if __name__ == '__main__':
     print("Bounding dimensions of domain_data before quadtree:", domain_data.total_bounds)
 
     # Instantiate a QuadTree with the domain data polygon and the desired node lengths
-    quad_tree = QuadTree(domain_data, node_length_near_boundary=0.005, node_length_far_from_boundary=0.01)
+    quad_tree = QuadTree(domain_data, node_length_near_boundary=0.0005, node_length_far_from_boundary=0.01)
 
     # Build the Quad Tree
     # Start time
@@ -620,27 +714,31 @@ if __name__ == '__main__':
     elapsed_time = end_time - start_time
     print("Land Nodes Deleted in:", elapsed_time, "seconds\n")
     # plot node to confirm deletion
-    quad_tree.plot_node_data_after_deletion()
-    quad_tree.write_serialize_quad_tree('west_island_coarse.qtdata')
+    # quad_tree.plot_node_data_after_deletion()
+    quad_tree.write_serialize_quad_tree('west_island_medium.qtdata')
 
     # Visualize the Quad Tree (after node deletion)
-    quad_tree.visualize_quadtree()
+    # quad_tree.visualize_quadtree()
 
     # Test Start Point & Goal Point Methods
-    startPoint = (-70.90267, 41.61413)
-    goalPoint = (-70.8140, 41.6095)
+    startPoint = (-70.91367, 41.61541)
+    goalPoint = (-70.8240, 41.6095)
     print("Start Point:", startPoint)
     print("Goal Point:", goalPoint)
 
     # Find closest nodes in the quad tree to Start and Goal points
-    start_node = quad_tree.find_closest_node(startPoint)
-    # goal_node = quad_tree.find_closest_node(goalPoint)
-    print("Closest Start Node:", start_node.longitude, start_node.latitude)
-    # print("Closest Goal Node:", goal_node.longitude, goal_node.latitude)
+    closest_start_node, closest_start_nodes, start_search_region = quad_tree.find_closest_node(startPoint)
+    closest_goal_node, closest_goal_nodes, goal_search_region = quad_tree.find_closest_node(goalPoint)
+    quad_tree.plot_nearest_node(startPoint, goalPoint,
+                                closest_start_node, closest_goal_node,
+                                closest_start_nodes, closest_goal_nodes,
+                                start_search_region, goal_search_region)
 
-    start_neighbors = quad_tree.get_neighbors(start_node)
-    for neighbor in start_neighbors:
-        print("Start Node Neighbor:", neighbor)
+
+
+    # start_neighbors = quad_tree.get_neighbors(start_node)
+    # for neighbor in start_neighbors:
+    #     print("Start Node Neighbor:", neighbor)
 
     # goal_neighbors = quad_tree.get_neighbors(goal_node)
     # for neighbor in goal_neighbors:

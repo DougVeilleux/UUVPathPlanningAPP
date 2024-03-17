@@ -2,6 +2,7 @@
 
 import math
 import heapq
+import time
 
 from utilities.QuadTreeGeodata import *
 
@@ -15,7 +16,6 @@ class AStarPathPlanner:
     def __init__(self, quadtree):
         """ Initialize the path planning object. """
         self.quadtree = quadtree
-
 
 
     def heuristic(self, current_node, goal_node):
@@ -58,7 +58,7 @@ if __name__ == '__main__':
     # Load QuadTree Data
     quadtree_data_path = (
         '/Users/dougveilleux/Documents/GitHub/UUVPathPlanningApp/'
-        'data/quad_tree/west_island_coarse.qtdata'
+        'data/quad_tree/west_island_medium.qtdata'
     )
     quadtree_data = deserialize_quad_tree(quadtree_data_path)
     # Visualize Quad Tree Data
@@ -72,24 +72,44 @@ if __name__ == '__main__':
     Define these initially as hard code start and goal points.  Once working
         clicks from the GUI Map will set the points from event handlers.
     """
-    startPoint = (-70.8960, 41.61780)
-    goalPoint = (-70.8140, 41.6095)
-    print("Start Point:", startPoint)
-    print("Goal Point:", goalPoint)
-
+    # Start time
+    start_time = time.time()
+    startPoint = (-70.9065, 41.6278)
+    goalPoint = (-70.8240, 41.6095)
+    # print("Start Point:", startPoint)
+    # print("Goal Point:", goalPoint)
     # Find closest nodes in the quad tree to Start and Goal points
-    start_node = quadtree_data.find_closest_node(startPoint)
-    goal_node = quadtree_data.find_closest_node(goalPoint)
-    print("Closest Start Node:", start_node.longitude, start_node.latitude)
-    print("Closest Goal Node:", goal_node.longitude, goal_node.latitude)
+    closest_start_node, closest_start_nodes, start_search_region = quadtree_data.find_closest_node(startPoint)
+    closest_goal_node, closest_goal_nodes, goal_search_region = quadtree_data.find_closest_node(goalPoint)
+    # quadtree_data.plot_nearest_node(startPoint, goalPoint,
+    #                             closest_start_node, closest_goal_node,
+    #                             closest_start_nodes, closest_goal_nodes,
+    #                             start_search_region, goal_search_region)
+    # Plot takes 40 seconds with medium
+    # End time
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print("Start and Goal Nodes found in:", elapsed_time, "seconds\n")
 
 
+    # Start time
+    start_time = time.time()
     # Load Quad Data into AStarPathPlanner Class
     uuvIngressPath = AStarPathPlanner(quadtree_data)
+    # End time
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print("AStar Class Instantiated in:", elapsed_time, "seconds\n")
+
 
     # Test the heuristic method
-    print("Heuristic Distance Start to Goal:", uuvIngressPath.heuristic(start_node, goal_node))
-
+    # Start time
+    start_time = time.time()
+    print("Heuristic Distance Start to Goal:", uuvIngressPath.heuristic(closest_start_node, closest_goal_node))
+    # End time
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print("Start and Goal Heuristic Calculated in:", elapsed_time, "seconds\n")
 
 
 
