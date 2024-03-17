@@ -367,8 +367,7 @@ class QuadTree:
         :param node: the current node being considered
         :param point: the coordinate (longitude, latitude)
         :param search_region: the region within which to search for the closest node
-        :param min_distance: min distance to the node in decimal degrees
-        :return: closest node within the search region
+        :return: nodes within the search region
         """
 
         # Check if the bounding box of the node intersects with the search region
@@ -729,10 +728,11 @@ if __name__ == '__main__':
     # Find closest nodes in the quad tree to Start and Goal points
     closest_start_node, closest_start_nodes, start_search_region = quad_tree.find_closest_node(startPoint)
     closest_goal_node, closest_goal_nodes, goal_search_region = quad_tree.find_closest_node(goalPoint)
-    quad_tree.plot_nearest_node(startPoint, goalPoint,
-                                closest_start_node, closest_goal_node,
-                                closest_start_nodes, closest_goal_nodes,
-                                start_search_region, goal_search_region)
+    #
+    # quad_tree.plot_nearest_node(startPoint, goalPoint,
+    #                             closest_start_node, closest_goal_node,
+    #                             closest_start_nodes, closest_goal_nodes,
+    #                             start_search_region, goal_search_region)
 
 
 
