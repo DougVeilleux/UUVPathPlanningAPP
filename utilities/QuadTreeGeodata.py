@@ -492,6 +492,31 @@ class QuadTree:
             node.southEast) + self.count_nodes(node.southWest)
 
     #### vvvv PLOTTING vvvv ####
+    def visualize_chart_data(self, ax):
+        # Create a new figure and axis
+        # fig, ax = plt.subplots(figsize=(14, 9))
+
+        # Plot the initial bounding box representing water
+        water_bounds = self.root.domain_data.unary_union.bounds
+        water_polygon = Polygon([(water_bounds[0], water_bounds[1]), (water_bounds[2], water_bounds[1]),
+                                 (water_bounds[2], water_bounds[3]), (water_bounds[0], water_bounds[3])])
+        gpd.GeoSeries([water_polygon]).plot(ax=ax, color='lightblue')
+
+        # Plot the MultiPolygon domain
+        multi_polygon = self.root.domain_data.iloc[0]
+        gpd.GeoSeries([multi_polygon]).plot(ax=ax, color='tan', linewidth=1, edgecolor='blue')
+
+        # Formatting
+        ax.set_xlabel('Longitude')
+        ax.set_ylabel('Latitude')
+        # Add grid
+        ax.grid(True, which='both', color='darkgrey', linestyle='--', linewidth=0.5)
+        # Setting Title
+        ax.set_title('', fontsize=20)
+
+        # Show the plot
+        # plt.show()
+
     def visualize_quadtree(self):
         # Create a new figure and axis
         fig, ax = plt.subplots(figsize=(14, 9))
@@ -670,7 +695,7 @@ if __name__ == '__main__':
     print("Bounding dimensions of domain_data before quadtree:", domain_data.total_bounds)
 
     # Instantiate a QuadTree with the domain data polygon and the desired node lengths
-    quad_tree = QuadTree(domain_data, node_length_near_boundary=0.0005, node_length_far_from_boundary=0.01)
+    quad_tree = QuadTree(domain_data, node_length_near_boundary=0.0005, node_length_far_from_boundary=0.005)
 
     # Build the Quad Tree
     # Start time
@@ -682,7 +707,7 @@ if __name__ == '__main__':
     print("\nQuad Tree Built in:", elapsed_time, "seconds\n")
 
     # Visualize the Quad Tree
-    # quad_tree.visualize_quadtree()
+    quad_tree.visualize_quadtree()
 
     # Classify the nodes and Land or Water
     # Start time

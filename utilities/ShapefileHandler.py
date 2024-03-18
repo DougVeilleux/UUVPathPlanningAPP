@@ -517,58 +517,6 @@ class ShapefileHandler:
         return centroids
 
 
-
-
-# Button Click Methods
-    # def set_path_area(self, event, ax, plot_centroids=True):
-    #     print('Path Planning Area Set')
-    #     # Get current axis limits (bounding box)
-    #     xmin, xmax = ax.get_xlim()
-    #     ymin, ymax = ax.get_ylim()
-    #
-    #     # Draw a box around the bounding box
-    #     self.path_area_box = plt.Rectangle((xmin, ymin), xmax - xmin, ymax - ymin, fill=False, edgecolor='red')
-    #     ax.add_patch(self.path_area_box)
-    #     # Update the plot
-    #     plt.draw()
-    #
-    #     # Create the bounding box polygon
-    #     bounding_box_polygon = Polygon([(xmin, ymin), (xmax, ymin), (xmax, ymax), (xmin, ymax)])
-    #
-    #
-    #
-    #     # Plot the resulting water polygon
-    #     fig2, ax2 = plt.subplots(figsize=(14, 9))
-    #
-    #
-    #
-    #
-    #
-    #
-    #     ax2.set_xlabel('Longitude')
-    #     ax2.set_ylabel('Latitude')
-    #     ax2.grid(True, which='both', linestyle='--', linewidth=0.5)
-    #     ax2.set_aspect('equal')
-    #     ax2.set_title('Path Planning Water Area ONLY')
-    #     plt.show()
-    #
-    # def reset_path_area(self, event, ax):
-    #     print('Path Planning Area Reset')
-    #     # Check if the path area box exists
-    #     if hasattr(self, 'path_area_box'):
-    #         print('Path area box exists')
-    #         # Remove the path area box
-    #         self.path_area_box.remove()
-    #         self.path_area_box = None  # Reset the attribute
-    #         print('Path area box removed')
-    #     else:
-    #         print('No path area box to reset')
-    #     # Update the plot
-    #     plt.draw()
-    #
-
-
-
 if __name__ == '__main__':
 
     shapefile_path = (
