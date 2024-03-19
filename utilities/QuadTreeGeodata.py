@@ -34,7 +34,6 @@ class QuadTreeNode:
         is_boundary: indicates whether the node lies on the boundary of the data region
          (e.g. a water / land boundary)
     """
-
     def __init__(self, domain_data, landOrWater=None):
         self.domain_data = domain_data
         self.landOrWater = landOrWater
@@ -112,8 +111,7 @@ class QuadTreeNode:
         x, y = point
         return self.min_x <= x <= self.max_x and self.min_y <= y <= self.max_y
 
-    def __str__(self):
-        return f"Node: ({self.longitude}, {self.latitude}), Leaf: {self.is_leaf}"
+
 
 
 class QuadTree:
@@ -129,9 +127,7 @@ class QuadTree:
                  - ~10m resolution ~= 0.0001
                  - ~42m resolution ~= 0.0005
             @ lat of 41 deg about 15-20% less than above
-
     """
-
     def __init__(self, domain_data, node_length_near_boundary=0.001, node_length_far_from_boundary=0.1):
         # Initialize the root node
         self.root = QuadTreeNode(domain_data)
@@ -239,6 +235,9 @@ class QuadTree:
 
         # Subdivide if both conditions are met
         return boundary_intersects and large_enough
+
+
+
 
     #### vvvv HELPERS vvvv####
     def classify_nodes(self):
@@ -401,53 +400,70 @@ class QuadTree:
                       node.latitude >= search_region[1] and node.latitude <= search_region[3])
         return intersects
 
-    def get_neighbors(self, target_node):
+    def get_neighbors(self, target_node, search_radius=0.015):
         """
         Get the neighbors of a given node in the quadtree
-        :param node:
-        :return: neighbors: list
+        :param target_node: the target _node is the node for which neighbors are being sought
+        :return: neighbors: list neighbor nodes
         """
+        # Define empty neighbors list
         neighbors = []
-        self._get_neighbors_recursive(self.root, target_node, neighbors)
-        print("Number of neighbors found:", len(neighbors))  # Debugging print
+
+        # assembly "point" to match required type for .find_closest_node
+        point = (target_node.longitude, target_node.latitude)
+        # Find target_node in the tree with find.closest_node method.  Reuse of method to find
+        # closest node for start and goal points.  Still works and traverses the tree
+        current_node, nodes_near_target, initial_search_region = self.find_closest_node(point, search_radius)
+        print("Found Target node: ", current_node.longitude, current_node.latitude)
+
+        # Define empty lists for neighbors in each quadrant
+        ne_neighbors = []
+        se_neighbors = []
+        sw_neighbors = []
+        nw_neighbors = []
+
+        ne_distance = float('inf')
+        se_distance = float('inf')
+        sw_distance = float('inf')
+        nw_distance = float('inf')
+        # Iterate through nodes near the target to find neighbors in each quadrant
+        for node in nodes_near_target:
+            # Calculate Euclidean distance between nod and current_node
+            distance = math.sqrt(
+                (current_node.latitude - node.latitude) ** 2
+                + (current_node.longitude - node.longitude) ** 2)
+
+            # NE Quadrant
+            if node.longitude > current_node.longitude and node.latitude > current_node.latitude:
+                if distance < ne_distance:
+                    ne_neighbors = [node]
+                    ne_distance = distance
+            # SE Quadrant
+            elif node.longitude > current_node.longitude and node.latitude < current_node.latitude:
+                if distance < se_distance:
+                    se_neighbors = [node]
+                    se_distance = distance
+            # SW Quadrant
+            elif node.longitude < current_node.longitude and node.latitude < current_node.latitude:
+                if distance < sw_distance:
+                    sw_neighbors = [node]
+                    sw_distance = distance
+            # NW Quadrant
+            elif node.longitude < current_node.longitude and node.latitude > current_node.latitude:
+                if distance < nw_distance:
+                    nw_neighbors = [node]
+                    nw_distance = distance
+
+        # Append neighbors from all quadrants to the neighbors list
+        neighbors.extend(ne_neighbors)
+        neighbors.extend(se_neighbors)
+        neighbors.extend(sw_neighbors)
+        neighbors.extend(nw_neighbors)
+
         return neighbors
 
-    def _get_neighbors_recursive(self, current_node, target_node, neighbors):
-        """
-        Recursively find the neighbors of the target node.
-        :param current_node: The current node being processed.
-        :param target_node: The target node for which neighbors are being searched.
-        :param neighbors: List to store the neighboring nodes.
-        """
-        if current_node is not None:
-            print("Current node:", current_node)
-            # Check if the current node is a leaf node and is not the target node
-            if current_node is not target_node:
-                neighbors.append(current_node)
-                print("Added neighbor:", current_node)
-            else:
-                # Check the relative position of the target node relative to the current node
-                if target_node.longitude < current_node.longitude:
-                    # Target is left of current
-                    if target_node.latitude < current_node.latitude:
-                        # Target node is in southwest quadrant
-                        print("Checking southwest quadrant")
-                        self._get_neighbors_recursive(current_node.southWest, target_node, neighbors)
-                    else:
-                        # Target node is in the northwest quadrant
-                        print("Checking northwest quadrant")
-                        self._get_neighbors_recursive(current_node.northWest, target_node, neighbors)
-                else:
-                    # Target is right of current
-                    if target_node.latitude < current_node.latitude:
-                        # Target node is in the southeast quadrant
-                        print("Checking southeast quadrant")
-                        self._get_neighbors_recursive(current_node.southEast, target_node, neighbors)
-                    else:
-                        # Target node is in the northeast quadrant
-                        print("Checking northeast quadrant")
-                        self._get_neighbors_recursive(current_node.northEast, target_node, neighbors)
-
+    def __str__(self):
+        return f"Node: ({self.longitude}, {self.latitude}), Leaf: {self.is_leaf}"
     def _is_adjacent_to_water(self, node):
         """
         Check if the land node is adjacent to a water node in the north, south,
@@ -490,6 +506,7 @@ class QuadTree:
         # Count the current node and recursively count the nodes in its children
         return 1 + self.count_nodes(node.northWest) + self.count_nodes(node.northEast) + self.count_nodes(
             node.southEast) + self.count_nodes(node.southWest)
+
 
     #### vvvv PLOTTING vvvv ####
     def visualize_chart_data(self, ax):
@@ -674,75 +691,169 @@ class QuadTree:
         else:
             print("Node data is not available after deletion.")
 
+    def plot_neighbors(self, neighbors, start_point, goal_point, start_closest_node, goal_closest_node,
+                          start_collected_nodes, goal_collected_nodes,
+                          start_search_region, goal_search_region):
+        """
+        Plot the nearest node along with the start and goal points.
+        :param point: Coordinates of the point (longitude, latitude)
+        :param collected_nodes: List collected nodes within the search region
+        :param closest_node: the closest node to the start point
+        """
+
+        # Collect node data after deletion (assuming you have a method for this)
+        final_node_dataframe = self.collect_node_data()
+
+        # Check if final_node_dataframe is not None (ensure deletion step was successful)
+        if final_node_dataframe is not None:
+            # Plot nodes
+            fig, ax = plt.subplots(figsize=(14, 9))
+            for index, row in final_node_dataframe.iterrows():
+                # Extract node coordinates
+                min_x, min_y, max_x, max_y = row['min_x'], row['min_y'], row['max_x'], row['max_y']
+                mid_x = (min_x + max_x) / 2
+                mid_y = (min_y + max_y) / 2
+                # Extract landOrWater value
+                land_or_water = row['landOrWater']
+                # Plot center point of the node
+                ax.scatter(mid_x, mid_y, c='tan' if land_or_water == 1 else 'blue', marker='o', s=10)
+
+            # Plot points (green / red)
+            ax.scatter(start_point[0], start_point[1], c='green', marker='*', s=150, label='Start Point')
+            ax.scatter(goal_point[0], goal_point[1], c='red', marker='*', s=150, label='Goal Point')
+
+            # Plot collected nodes
+            for node in start_collected_nodes:
+                ax.scatter(node.longitude, node.latitude, facecolor='none', edgecolor='gray',
+                           linestyle='--', marker='o', s=150)
+            for node in goal_collected_nodes:
+                ax.scatter(node.longitude, node.latitude, facecolor='none', edgecolor='gray',
+                           linestyle='--', marker='o', s=150)
+
+            # Plot search region
+            left, bottom, right, top = start_search_region
+            plt.plot([left, left, right, right, left], [bottom, top, top, bottom, bottom], linestyle='--',
+                     color='green', label='Start Search Region')
+            left, bottom, right, top = goal_search_region
+            plt.plot([left, left, right, right, left], [bottom, top, top, bottom, bottom], linestyle='--',
+                     color='red', label='Goal Search Region')
+
+            # Plot closest node (green / red)
+            ax.scatter(start_closest_node.longitude, start_closest_node.latitude, facecolor='none', edgecolor='green',
+                       marker='o', linewidth=3.0, s=150, label='Closest Start Node')
+            ax.scatter(goal_closest_node.longitude, goal_closest_node.latitude, facecolor='none', edgecolor='red',
+                       marker='o', linewidth=3.0, s=150, label='Closest Goal Node')
+
+            # Plot the neighbors
+            for neighbor in neighbors:
+                ax.scatter(neighbor.longitude, neighbor.latitude, c='orange', marker='o', s=50,
+                           label='Neighbors')
+
+
+            ax.set_aspect('equal', 'box')
+            ax.set_xlabel('Longitude')  # Set the x-axis label to 'Longitude'
+            ax.set_ylabel('Latitude')  # Set the y-axis label to 'Latitude'
+            ax.set_title('Node Data with Start & Goal Points and Closest Calculated Start & Goal Nodes')
+            ax.legend(loc='upper center')
+            plt.show()
+
+        else:
+            print("Node data is not available after deletion.")
+
+
+
+
+
+
+def deserialize_quad_tree(file_path):
+    """
+    Method to load a .qtdata file containing Chart Data in a quad tree data structure format
+    Parameter: file_path: including data file
+    Return: quadtree
+    """
+    with open(file_path, 'rb') as f:
+        quadtree = pickle.load(f)
+    return quadtree
+
+
 
 
 ##=========================================================================================##
 if __name__ == '__main__':
-    # Load the data
-    shapefile_path = (
-        '/Users/dougveilleux/Documents/GitHub/UUVPathPlanningApp/'
-        'data/SHAPE_FILE/US4MA23M/US4MA23M_SHAPEFILE.shp'
-    )
-    # Instantiate the data object
-    chart_us4ma23m = ShapefileHandler(shapefile_path)
-
-    # Create a Selection box Manually for now.  Eventually this will come from mouse interaction
-    x1, y1, x2, y2 = -70.8714, 41.573, -70.7866, 41.6372
-    bounding_box = box(x1, y1, x2, y2)
-    domain_data = chart_us4ma23m.make_land_polygon(showPlot=False, bounding_box=bounding_box)
-    print(type(domain_data))
-    print(domain_data)
-    print("Bounding dimensions of domain_data before quadtree:", domain_data.total_bounds)
-
-    # Instantiate a QuadTree with the domain data polygon and the desired node lengths
-    quad_tree = QuadTree(domain_data, node_length_near_boundary=0.0005, node_length_far_from_boundary=0.005)
-
-    # Build the Quad Tree
-    # Start time
-    start_time = time.time()
-    quad_tree.build_quadtree()
-    # End time
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-    print("\nQuad Tree Built in:", elapsed_time, "seconds\n")
-
-    # Visualize the Quad Tree
-    quad_tree.visualize_quadtree()
-
-    # Classify the nodes and Land or Water
-    # Start time
-    start_time = time.time()
-    quad_tree.classify_nodes()
-    # End time
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-    print("Nodes Classified in:", elapsed_time, "seconds\n")
-
-    # Collect the nodes and plot to confirm classification worked
-    # Start time
-    start_time = time.time()
-    node_dataframe = quad_tree.collect_node_data()
-    # End time
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-    print("Collected Node Data in:", elapsed_time, "seconds\n")
-    # plot node data
-    # quad_tree.plot_node_data(node_dataframe)
-
-    # Delete unnecessary land nodes to reduce data set
-    # Start time
-    start_time = time.time()
-    quad_tree.delete_unnecessary_land_nodes()
-    # End time
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-    print("Land Nodes Deleted in:", elapsed_time, "seconds\n")
-    # plot node to confirm deletion
-    # quad_tree.plot_node_data_after_deletion()
-    quad_tree.write_serialize_quad_tree('west_island_medium.qtdata')
-
-    # Visualize the Quad Tree (after node deletion)
+    # # Load the data
+    # shapefile_path = (
+    #     '/Users/dougveilleux/Documents/GitHub/UUVPathPlanningApp/'
+    #     'data/SHAPE_FILE/US4MA23M/US4MA23M_SHAPEFILE.shp'
+    # )
+    # # Instantiate the data object
+    # chart_us4ma23m = ShapefileHandler(shapefile_path)
+    #
+    # # Create a Selection box Manually for now.  Eventually this will come from mouse interaction
+    # x1, y1, x2, y2 = -70.8714, 41.573, -70.7866, 41.6372
+    # bounding_box = box(x1, y1, x2, y2)
+    # domain_data = chart_us4ma23m.make_land_polygon(showPlot=False, bounding_box=bounding_box)
+    # print(type(domain_data))
+    # print(domain_data)
+    # print("Bounding dimensions of domain_data before quadtree:", domain_data.total_bounds)
+    #
+    # # Instantiate a QuadTree with the domain data polygon and the desired node lengths
+    # quad_tree = QuadTree(domain_data, node_length_near_boundary=0.0005, node_length_far_from_boundary=0.005)
+    #
+    # # Build the Quad Tree
+    # # Start time
+    # start_time = time.time()
+    # quad_tree.build_quadtree()
+    # # End time
+    # end_time = time.time()
+    # elapsed_time = end_time - start_time
+    # print("\nQuad Tree Built in:", elapsed_time, "seconds\n")
+    #
+    # # Visualize the Quad Tree
     # quad_tree.visualize_quadtree()
+    #
+    # # Classify the nodes and Land or Water
+    # # Start time
+    # start_time = time.time()
+    # quad_tree.classify_nodes()
+    # # End time
+    # end_time = time.time()
+    # elapsed_time = end_time - start_time
+    # print("Nodes Classified in:", elapsed_time, "seconds\n")
+    #
+    # # Collect the nodes and plot to confirm classification worked
+    # # Start time
+    # start_time = time.time()
+    # node_dataframe = quad_tree.collect_node_data()
+    # # End time
+    # end_time = time.time()
+    # elapsed_time = end_time - start_time
+    # print("Collected Node Data in:", elapsed_time, "seconds\n")
+    # # plot node data
+    # # quad_tree.plot_node_data(node_dataframe)
+    #
+    # # Delete unnecessary land nodes to reduce data set
+    # # Start time
+    # start_time = time.time()
+    # quad_tree.delete_unnecessary_land_nodes()
+    # # End time
+    # end_time = time.time()
+    # elapsed_time = end_time - start_time
+    # print("Land Nodes Deleted in:", elapsed_time, "seconds\n")
+    # # plot node to confirm deletion
+    # # quad_tree.plot_node_data_after_deletion()
+    # quad_tree.write_serialize_quad_tree('west_island_medium.qtdata')
+    #
+    # # Visualize the Quad Tree (after node deletion)
+    # # quad_tree.visualize_quadtree()
+
+    # Load QuadTree Data
+    quadtree_data_path = (
+        '/Users/dougveilleux/Documents/GitHub/UUVPathPlanningApp/'
+        'data/quad_tree/west_island_medium.qtdata'
+    )
+    quad_tree = deserialize_quad_tree(quadtree_data_path)
+
+
 
     # Test Start Point & Goal Point Methods
     startPoint = (-70.91367, 41.61541)
@@ -753,21 +864,40 @@ if __name__ == '__main__':
     # Find closest nodes in the quad tree to Start and Goal points
     closest_start_node, closest_start_nodes, start_search_region = quad_tree.find_closest_node(startPoint)
     closest_goal_node, closest_goal_nodes, goal_search_region = quad_tree.find_closest_node(goalPoint)
-    #
+
     # quad_tree.plot_nearest_node(startPoint, goalPoint,
     #                             closest_start_node, closest_goal_node,
     #                             closest_start_nodes, closest_goal_nodes,
     #                             start_search_region, goal_search_region)
+    # print(closest_start_node.longitude, closest_start_node.latitude)
+
+    start_neighbors = quad_tree.get_neighbors(closest_start_node)
+    for node in start_neighbors:
+        print("Node Details:")
+        print("Longitude:", node.longitude)
+        print("Latitude:", node.latitude)
+        print("landOrWater:", node.landOrWater)
+        print()  # Add an empty line for better readability between nodes
+
+    quad_tree.plot_neighbors(start_neighbors, startPoint, goalPoint,
+                                closest_start_node, closest_goal_node,
+                                closest_start_nodes, closest_goal_nodes,
+                                start_search_region, goal_search_region)
+
+
+    goal_neighbors = quad_tree.get_neighbors(closest_goal_node)
+    for node in goal_neighbors:
+        print("Node Details:")
+        print("Longitude:", node.longitude)
+        print("Latitude:", node.latitude)
+        print("landOrWater:", node.landOrWater)
+        print()  # Add an empty line for better readability between nodes
+
+    quad_tree.plot_neighbors(goal_neighbors, startPoint, goalPoint,
+                                closest_start_node, closest_goal_node,
+                                closest_start_nodes, closest_goal_nodes,
+                                start_search_region, goal_search_region)
 
 
 
-    # start_neighbors = quad_tree.get_neighbors(start_node)
-    # for neighbor in start_neighbors:
-    #     print("Start Node Neighbor:", neighbor)
 
-    # goal_neighbors = quad_tree.get_neighbors(goal_node)
-    # for neighbor in goal_neighbors:
-    #     print("Goal Node Neighbor:", neighbor)
-
-
-    # print(quad_tree.collect_node_data())

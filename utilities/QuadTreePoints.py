@@ -233,7 +233,7 @@ if __name__ == "__main__":
     boundary = Rectangle(Point(0, 0), width, height)
 
     # Create a QuadTree with the specified boundary and capacity
-    quadtree = QuadTree(boundary, capacity=2)
+    quadtree = QuadTree(boundary, capacity=1)
 
     # Define some points to insert into the quadtree
     N = 500  # Number of points to generate
