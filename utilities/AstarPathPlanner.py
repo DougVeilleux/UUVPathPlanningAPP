@@ -34,15 +34,29 @@ class AStarPathPlanner:
         # set to ZERO to start becasue the cost to reach start_node from start = ZERO
         g_score = {start_node: 0}
 
+        # print("Open Set Before Loop:", open_set)
         while open_set:
+            # print("Open Set After Loop:", open_set) # Debug Stateemt
             # Get node with the lowest f_score value from the open set and set to current node
             _, current = heapq.heappop(open_set)
+            # print("Current Node: (Longitude: {}, Latitude: {}), LandOrWater: {}".format(  # Debug Stateemt
+            #     current.longitude,
+            #     current.latitude,
+            #     current.landOrWater))
+
             # Check if goal has been found and return the path
             if current == goal_node:
+                # print("Goal Node Reached!") # Debug Stateemt
                 return self.reconstruct_path(came_from, current)
 
+            neighbors = self.get_neighbors_astar(current)
+            # for neighbor_node in neighbors:
+                # print("Neighbor Node: (Longitude: {}, Latitude: {}), LandOrWater: {}".format(
+                #     neighbor_node.longitude,
+                #     neighbor_node.latitude,
+                #     neighbor_node.landOrWater))
             # Loop through neighbor nodes and evaluate
-            for neighbor in self.get_neighbors(current):
+            for neighbor in neighbors:
                 # Calculate the g score of the neighbor node and sum with the euclidean distance
                 # (could use other distance method to experiment with, e.g. Manhattan)
                 tentative_g_score = g_score.get(current, float('inf')) + self.h_euclidean(current, neighbor)
@@ -54,6 +68,10 @@ class AStarPathPlanner:
                     f_score = tentative_g_score + self.h_euclidean(neighbor, goal_node)
                     # Add the neighbor to the priority queue with its f_score
                     heapq.heappush(open_set, (f_score, neighbor))
+        #     print("Current Open Set:", open_set)  # Debug Stateemt
+        #     print("Came From:", came_from)   # Debug Stateemt
+        #
+        # print("Open Set After Loop:", open_set)   # Debug Stateemt
 
         return None  # Failed to find a path
 
@@ -76,6 +94,13 @@ class AStarPathPlanner:
 
 
     #vvvvv HELPER METHODS vvvvv
+    def get_neighbors_astar(self, node):
+        """ Get neighboring nodes using the get_neighbors method from QuadTree class.
+        :param node: node to find neighbors form"""
+        neighbors = self.quadtree.get_neighbors(node)
+        return [neighbor for neighbor in neighbors if neighbor.landOrWater != 1]
+
+
     def h_euclidean(self, current_node, goal_node):
         """
         Calculate the Euclidean distance from current node to the goal_node
@@ -233,16 +258,17 @@ if __name__ == '__main__':
     """
     # Start time
     start_time = time.time()
-    startPoint = (-70.90, 41.61)
+    # startPoint = (-70.90, 41.61)
+    startPoint = (-70.840, 41.592)
     # goalPoint = (-70.8240, 41.6095)
-    goalPoint = (-70.88, 41.62)
+    goalPoint = (-70.907, 41.6284)
 
     # print("Start Point:", startPoint)
     # print("Goal Point:", goalPoint)
     # Find closest nodes in the quad tree to Start and Goal points
     closest_start_node, closest_start_nodes, start_search_region = quadtree_data.find_closest_node(startPoint)
     closest_goal_node, closest_goal_nodes, goal_search_region = quadtree_data.find_closest_node(goalPoint)
-    print(type(closest_start_node))
+    # print(type(closest_start_node))
     # quadtree_data.plot_nearest_node(startPoint, goalPoint,
     #                             closest_start_node, closest_goal_node,
     #                             closest_start_nodes, closest_goal_nodes,
@@ -266,35 +292,35 @@ if __name__ == '__main__':
 
     # Test the heuristic method
     # Start time
-    start_time = time.time()
-    print("Heuristic Distance Start to Goal:", uuvIngressPath.h_euclidean(closest_start_node, closest_goal_node))
-    # End time
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-    print("Start and Goal Heuristic Calculated in:", elapsed_time, "seconds\n")
+    # start_time = time.time()
+    # print("Heuristic Distance Start to Goal:", uuvIngressPath.h_euclidean(closest_start_node, closest_goal_node))
+    # # End time
+    # end_time = time.time()
+    # elapsed_time = end_time - start_time
+    # print("Start and Goal Heuristic Calculated in:", elapsed_time, "seconds\n")
 
 
     # Test the get_neighbors method
     # Start time
-    start_time = time.time()
-    start_neighbors = uuvIngressPath.get_neighbors(closest_start_node)
-    goal_neighbors = uuvIngressPath.get_neighbors(closest_goal_node)
-    # print(type(start_neighbors))
-    for neighbor_node in start_neighbors:
-        print("Closest Start Neighbor Node: (Longitude: {}, Latitude: {}), LandOrWater: {}".format(
-            neighbor_node.longitude,
-            neighbor_node.latitude,
-            neighbor_node.landOrWater))
-    print()
-    for neighbor_node in goal_neighbors:
-        print("Closest Goal Neighbor Node: (Longitude: {}, Latitude: {}), LandOrWater: {}".format(
-            neighbor_node.longitude,
-            neighbor_node.latitude,
-            neighbor_node.landOrWater))
-    # End time
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-    print("\nGet Neighbor Calculated in:", elapsed_time, "seconds\n")
+    # start_time = time.time()
+    start_neighbors = uuvIngressPath.get_neighbors_astar(closest_start_node)
+    goal_neighbors = uuvIngressPath.get_neighbors_astar(closest_goal_node)
+    # # print(type(start_neighbors))
+    # # for neighbor_node in start_neighbors:
+    # #     print("Closest Start Neighbor Node: (Longitude: {}, Latitude: {}), LandOrWater: {}".format(
+    # #         neighbor_node.longitude,
+    # #         neighbor_node.latitude,
+    # #         neighbor_node.landOrWater))
+    # # print()
+    # # for neighbor_node in goal_neighbors:
+    # #     print("Closest Goal Neighbor Node: (Longitude: {}, Latitude: {}), LandOrWater: {}".format(
+    # #         neighbor_node.longitude,
+    # #         neighbor_node.latitude,
+    # #         neighbor_node.landOrWater))
+    # # End time
+    # end_time = time.time()
+    # elapsed_time = end_time - start_time
+    # print("\nGet Neighbor Calculated in:", elapsed_time, "seconds\n")
 
     # Add more attributes as needed
     print()  # Print an empty line for better readability
@@ -304,7 +330,7 @@ if __name__ == '__main__':
     #                             closest_start_node, closest_goal_node,
     #                             closest_start_nodes, closest_goal_nodes,
     #                             start_search_region, goal_search_region)
-    #
+    # # #
     # uuvIngressPath.plot_neighbors(goal_neighbors, startPoint, goalPoint,
     #                             closest_start_node, closest_goal_node,
     #                             closest_start_nodes, closest_goal_nodes,
@@ -314,7 +340,7 @@ if __name__ == '__main__':
     # Test the astar_path method
     # Start time
     start_time = time.time()
-    path = uuvIngressPath.astar_path(closest_start_node, closest_start_node)
+    path = uuvIngressPath.astar_path(closest_start_node, closest_goal_node)
     print(type(path))
     if path:
         print("Optimal A* Path:")

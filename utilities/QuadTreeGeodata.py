@@ -400,7 +400,7 @@ class QuadTree:
                       node.latitude >= search_region[1] and node.latitude <= search_region[3])
         return intersects
 
-    def get_neighbors(self, target_node, search_radius=0.015):
+    def get_neighbors(self, target_node, search_radius=0.03):
         """
         Get the neighbors of a given node in the quadtree
         :param target_node: the target _node is the node for which neighbors are being sought
@@ -416,12 +416,20 @@ class QuadTree:
         current_node, nodes_near_target, initial_search_region = self.find_closest_node(point, search_radius)
         print("Found Target node: ", current_node.longitude, current_node.latitude)
 
-        # Define empty lists for neighbors in each quadrant
+        # Define empty lists for neighbors in each half / quadrant
+        n_neighbors = []
+        s_neighbors = []
+        e_neighbors = []
+        w_neighbors = []
         ne_neighbors = []
         se_neighbors = []
         sw_neighbors = []
         nw_neighbors = []
 
+        n_distance = float('inf')
+        s_distance = float('inf')
+        e_distance = float('inf')
+        w_distance = float('inf')
         ne_distance = float('inf')
         se_distance = float('inf')
         sw_distance = float('inf')
@@ -433,28 +441,64 @@ class QuadTree:
                 (current_node.latitude - node.latitude) ** 2
                 + (current_node.longitude - node.longitude) ** 2)
 
+            # N Half
+            if node.latitude > current_node.latitude:
+                if distance < n_distance:
+                    n_neighbors = [node]
+                # n_neighbors.append(node)
+                    n_distance = distance
+
+            # S Half
+            if node.latitude < current_node.latitude:
+                if distance < s_distance:
+                    s_neighbors = [node]
+                # s_neighbors.append(node)
+                    s_distance = distance
+
+            # E Half
+            if node.longitude > current_node.longitude:
+                if distance < e_distance:
+                    e_neighbors = [node]
+                # e_neighbors.append(node)
+                    e_distance = distance
+
+            # W Half
+            if node.longitude < current_node.longitude:
+                if distance < w_distance:
+                    w_neighbors = [node]
+                # w_neighbors.append(node)
+                    w_distance = distance
+
             # NE Quadrant
             if node.longitude > current_node.longitude and node.latitude > current_node.latitude:
                 if distance < ne_distance:
                     ne_neighbors = [node]
+                # ne_neighbors.append(node)
                     ne_distance = distance
             # SE Quadrant
             elif node.longitude > current_node.longitude and node.latitude < current_node.latitude:
                 if distance < se_distance:
                     se_neighbors = [node]
+                # se_neighbors.append(node)
                     se_distance = distance
             # SW Quadrant
             elif node.longitude < current_node.longitude and node.latitude < current_node.latitude:
                 if distance < sw_distance:
                     sw_neighbors = [node]
+                # sw_neighbors.append(node)
                     sw_distance = distance
             # NW Quadrant
             elif node.longitude < current_node.longitude and node.latitude > current_node.latitude:
                 if distance < nw_distance:
                     nw_neighbors = [node]
+                # nw_neighbors.append(node)
                     nw_distance = distance
 
         # Append neighbors from all quadrants to the neighbors list
+        neighbors.extend(n_neighbors)
+        neighbors.extend(s_neighbors)
+        neighbors.extend(e_neighbors)
+        neighbors.extend(w_neighbors)
         neighbors.extend(ne_neighbors)
         neighbors.extend(se_neighbors)
         neighbors.extend(sw_neighbors)
