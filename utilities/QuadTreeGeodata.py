@@ -400,7 +400,7 @@ class QuadTree:
                       node.latitude >= search_region[1] and node.latitude <= search_region[3])
         return intersects
 
-    def get_neighbors(self, target_node, search_radius=0.03):
+    def get_neighbors(self, target_node, search_radius=0.015):
         """
         Get the neighbors of a given node in the quadtree
         :param target_node: the target _node is the node for which neighbors are being sought
@@ -414,7 +414,7 @@ class QuadTree:
         # Find target_node in the tree with find.closest_node method.  Reuse of method to find
         # closest node for start and goal points.  Still works and traverses the tree
         current_node, nodes_near_target, initial_search_region = self.find_closest_node(point, search_radius)
-        print("Found Target node: ", current_node.longitude, current_node.latitude)
+        # print("Found Target node: ", current_node.longitude, current_node.latitude)
 
         # Define empty lists for neighbors in each half / quadrant
         n_neighbors = []
@@ -769,10 +769,10 @@ class QuadTree:
             # Plot collected nodes
             for node in start_collected_nodes:
                 ax.scatter(node.longitude, node.latitude, facecolor='none', edgecolor='gray',
-                           linestyle='--', marker='o', s=150)
+                           linestyle='--', marker='o', s=10)
             for node in goal_collected_nodes:
                 ax.scatter(node.longitude, node.latitude, facecolor='none', edgecolor='gray',
-                           linestyle='--', marker='o', s=150)
+                           linestyle='--', marker='o', s=10)
 
             # Plot search region
             left, bottom, right, top = start_search_region
@@ -900,8 +900,8 @@ if __name__ == '__main__':
 
 
     # Test Start Point & Goal Point Methods
-    startPoint = (-70.91367, 41.61541)
-    goalPoint = (-70.8240, 41.6095)
+    startPoint = (-70.840, 41.592)
+    goalPoint = (-70.907, 41.6284)
     print("Start Point:", startPoint)
     print("Goal Point:", goalPoint)
 
@@ -937,10 +937,10 @@ if __name__ == '__main__':
         print("landOrWater:", node.landOrWater)
         print()  # Add an empty line for better readability between nodes
 
-    quad_tree.plot_neighbors(goal_neighbors, startPoint, goalPoint,
-                                closest_start_node, closest_goal_node,
-                                closest_start_nodes, closest_goal_nodes,
-                                start_search_region, goal_search_region)
+    # quad_tree.plot_neighbors(goal_neighbors, startPoint, goalPoint,
+    #                             closest_start_node, closest_goal_node,
+    #                             closest_start_nodes, closest_goal_nodes,
+    #                             start_search_region, goal_search_region)
 
 
 

@@ -119,6 +119,21 @@ class AStarPathPlanner:
             (current_node.latitude - goal_node.latitude) ** 2
             + (current_node.longitude - goal_node.longitude) ** 2)
 
+    def h_manhattan(self, current_node, goal_node):
+        """
+        Calculate the Manhattan distance from current node to the goal_node
+        Parameters:
+            current_node: current_node that heuristic is being calculated for
+            goal_node:  the end position
+        """
+        # Check if node is a QuadTreeNode and goal_node is a tuple
+        if not isinstance(current_node, QuadTreeNode):
+            raise TypeError("The 'current_node' parameter must be a QuadTreeNode instance.")
+        if not isinstance(goal_node, QuadTreeNode):
+            raise TypeError("The 'goal_node' parameter must be a QuadTreeNode instance.")
+
+        # Calculate the Manhattan distance
+        return abs(current_node.latitude - goal_node.latitude) + abs(current_node.longitude - goal_node.longitude)
 
     #vvvvv PLOTTING METHODS
     def plot_neighbors(self, neighbors, start_point, goal_point, start_closest_node, goal_closest_node,
@@ -246,7 +261,7 @@ if __name__ == '__main__':
     )
     quadtree_data = deserialize_quad_tree(quadtree_data_path)
     # Visualize Quad Tree Data
-    # quadtree_data.visualize_quadtree()
+    quadtree_data.visualize_quadtree()
 
     # node_data = quadtree_data.collect_node_data()
     # print(node_data)
@@ -258,9 +273,7 @@ if __name__ == '__main__':
     """
     # Start time
     start_time = time.time()
-    # startPoint = (-70.90, 41.61)
     startPoint = (-70.840, 41.592)
-    # goalPoint = (-70.8240, 41.6095)
     goalPoint = (-70.907, 41.6284)
 
     # print("Start Point:", startPoint)
