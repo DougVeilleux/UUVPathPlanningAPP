@@ -111,6 +111,15 @@ class QuadTreeNode:
         x, y = point
         return self.min_x <= x <= self.max_x and self.min_y <= y <= self.max_y
 
+    def __lt__(self, other):
+        """
+        Define the comparison logic for the longitude and latitude
+        :param other:
+        :return:
+        """
+        if self.longitude == other.longitude:
+            return self.latitude < other.latitude
+        return self.longitude < other.longitude
 
 
 
@@ -128,7 +137,7 @@ class QuadTree:
                  - ~42m resolution ~= 0.0005
             @ lat of 41 deg about 15-20% less than above
     """
-    def __init__(self, domain_data, node_length_near_boundary=0.001, node_length_far_from_boundary=0.1):
+    def __init__(self, domain_data, node_length_near_boundary=0.001, node_length_far_from_boundary=0.01):
         # Initialize the root node
         self.root = QuadTreeNode(domain_data)
         self.node_length_near_boundary = node_length_near_boundary
@@ -334,7 +343,7 @@ class QuadTree:
                     # Set node as boundary if it's not adjacent to water
                     node.is_boundary = True
 
-    def find_closest_node(self, point, search_radius=0.015):
+    def find_closest_node(self, point, search_radius=0.05):
         """
         Find the closest node in the quadtree to the given point within a search radius.
         :param point: the coordinate (longitude, latitude)
@@ -400,7 +409,7 @@ class QuadTree:
                       node.latitude >= search_region[1] and node.latitude <= search_region[3])
         return intersects
 
-    def get_neighbors(self, target_node, search_radius=0.015):
+    def get_neighbors(self, target_node, search_radius=0.01):
         """
         Get the neighbors of a given node in the quadtree
         :param target_node: the target _node is the node for which neighbors are being sought
@@ -506,8 +515,155 @@ class QuadTree:
 
         return neighbors
 
+
+
+    def get_neighbors2(self, target_node, search_radius=0.02, search_band=0.001):
+        """
+        Get the neighbors of a given node in the quadtree
+        :param node: the current node neighbors are being found for
+        :return: neighbors: list of neighbors nodes
+        """
+        # Define the empty neighbors list
+        neighbors = []
+
+        # assembly "point" to match required type for .find_closest_node
+        point = (target_node.longitude, target_node.latitude)
+        # Find target_node in the tree with find.closest_node method.  Reuse of method to find
+        # closest node for start and goal points.  Still works and traverses the tree
+        current_node, nodes_near_target, initial_search_region = self.find_closest_node(point, search_radius)
+        # print("Found Target node: ", current_node.longitude, current_node.latitude)
+
+        pos_long_search_band = current_node.longitude + search_band
+        neg_long_search_band = current_node.longitude - search_band
+        # print("Pos Long Search Band:", pos_long_search_band)
+        # print("Neg Long Search Band:", neg_long_search_band)
+        pos_lat_search_band = current_node.latitude + search_band
+        neg_lat_search_band = current_node.latitude - search_band
+        # print("Pos Lat Search Band:", pos_lat_search_band)
+        # print("Neg Lat Search Band:", neg_lat_search_band)
+
+        # Define empty lists for neighbors in each half / quadrant
+        n_neighbors = []
+        s_neighbors = []
+        e_neighbors = []
+        w_neighbors = []
+
+        # Find North Neighbors
+        n_limit_latitude = float(90.000)
+        for node in nodes_near_target:
+            # Check if the latitude of the node is greater than the latitude of the current node
+            if node.latitude > current_node.latitude:
+                # Append the node to the n_neighbors list
+                n_neighbors.append(node)
+                # Find the node latitude of the first land node with the same longitude range as the current_node
+                if (node.longitude <= pos_long_search_band) and (node.longitude >= neg_long_search_band) \
+                        and node.landOrWater == 0:
+                    # Set n_limit_latitude to the latitude of the current node
+                    if node.latitude < n_limit_latitude:
+                        n_limit_latitude = node.latitude
+                        # print("Found lower n_limit_latitude:", n_limit_latitude)  # Debug statement
+                    # else:
+                        # print("n_limit_latitude is at Boundary", n_limit_latitude)
+
+        # Find South Neighbors
+        s_limit_latitude = float(0.000)
+        for node in nodes_near_target:
+            # Check if the latitude of the node is greater than the latitude of the current node
+            if node.latitude < current_node.latitude:
+                # Append the node to the s_neighbors list
+                n_neighbors.append(node)
+                # Find the node latitude of the first land node with the same longitude range as the current_node
+                if (node.longitude <= pos_long_search_band) and (node.longitude >= neg_long_search_band) \
+                        and node.landOrWater == 0:
+                    # Set s_limit_latitude to the latitude of the current node
+                    if node.latitude > s_limit_latitude:
+                        s_limit_latitude = node.latitude
+                        # print("Found lower s_limit_latitude:", s_limit_latitude)  # Debug statement
+                    # else:
+                        # print("s_limit_latitude is at Boundary", s_limit_latitude)
+
+        # Find East Neighbors
+        e_limit_longitude = float(-0.000)
+        for node in nodes_near_target:
+            # Check if the longitude of the node is greater than the longitude of the current node
+            if node.longitude > current_node.longitude:
+                # print("node.longitude:", node.longitude, "current_node.longitude:", current_node.longitude)
+                # Append the node to the e_neighbors list
+                e_neighbors.append(node)
+                # Find the node latitude of the first land node with the same longitude range as the current_node
+                if (node.latitude <= pos_lat_search_band) and (node.latitude >= neg_lat_search_band) \
+                        and node.landOrWater == 0:
+                    # Set e_limit_longitude to the longitude of the current node
+                    if node.longitude < e_limit_longitude:
+                        e_limit_longitude = node.longitude
+                        # print("Found lower e_limit_latitude:", e_limit_longitude)  # Debug statement
+                    # else:
+                        # print("e_limit_latitude is at Boundary", e_limit_longitude)
+
+        # Find West Neighbors
+        w_limit_longitude = float(-180.000)
+        for node in nodes_near_target:
+            # Check if the latitude of the node is greater than the latitude of the current node
+            if node.longitude < current_node.longitude:
+                # Append the node to the e_neighbors list
+                w_neighbors.append(node)
+                # Find the node latitude of the first land node with the same longitude range as the current_node
+                if (node.latitude <= pos_lat_search_band) and (node.latitude >= neg_lat_search_band) \
+                        and node.landOrWater == 0:
+                    # Set w_limit_longitude to the longitude of the current node
+                    if node.longitude > w_limit_longitude:
+                        w_limit_longitude = node.longitude
+                        # print("Found lower w_limit_latitude:", w_limit_longitude)  # Debug statement
+                    # else:
+                        # print("w_limit_latitude is at Boundary", w_limit_longitude)
+
+        # Create an empty list to store filtered nodes
+        filtered_n_neighbors = []
+        filtered_s_neighbors = []
+        filtered_e_neighbors = []
+        filtered_w_neighbors = []
+        # Iterate over each node in the n_neighbors list
+        for node in n_neighbors:
+            # Check if the latitude of the current node is less than or equal to n_limit_latitude
+            if node.latitude <= n_limit_latitude:
+                # If the condition is true, append the node to the filtered_neighbors list
+                filtered_n_neighbors.append(node)
+        for node in s_neighbors:
+            if node.latitude >= s_limit_latitude:
+                filtered_s_neighbors.append(node)
+        for node in e_neighbors:
+            if node.longitude <= e_limit_longitude:
+                filtered_e_neighbors.append(node)
+        for node in w_neighbors:
+            if node.longitude >= w_limit_longitude:
+                filtered_w_neighbors.append(node)
+
+
+        # Append neighbors from all quadrants to the neighbors list
+        neighbors.extend(filtered_n_neighbors)
+        neighbors.extend(filtered_s_neighbors)
+        neighbors.extend(filtered_e_neighbors)
+        neighbors.extend(filtered_w_neighbors)
+        # print("North Lat. Limit, Nodes should be <= to: ", n_limit_latitude)
+        # print("South Lat. Limit, Nodes should be >= to: ", s_limit_latitude)
+        # print("East Lon. Limit, Nodes should be <= to: ", e_limit_longitude)
+        # print("West Lon. Limit, Nodes should be >= to: ", w_limit_longitude)
+
+        # print("Number of target_nodes found:", len(neighbors))
+        # Filter neighbors within the bounding box
+        filtered_neighbors = []
+        for node in neighbors:
+            if node.latitude <= n_limit_latitude and node.latitude >= s_limit_latitude \
+                    and node.longitude <= e_limit_longitude and node.longitude >= w_limit_longitude:
+                # print("Filtering...")
+                filtered_neighbors.append(node)
+        # print("Number of filtered target_node Neighbors:", len(filtered_neighbors))
+
+        return filtered_neighbors
+
     def __str__(self):
         return f"Node: ({self.longitude}, {self.latitude}), Leaf: {self.is_leaf}"
+
     def _is_adjacent_to_water(self, node):
         """
         Check if the land node is adjacent to a water node in the north, south,
@@ -790,22 +946,19 @@ class QuadTree:
 
             # Plot the neighbors
             for neighbor in neighbors:
-                ax.scatter(neighbor.longitude, neighbor.latitude, c='orange', marker='o', s=50,
-                           label='Neighbors')
+                ax.scatter(neighbor.longitude, neighbor.latitude, facecolor='none', edgecolor='orange', marker='o',
+                           s=50, linewidth=2, label='Neighbors')
 
 
             ax.set_aspect('equal', 'box')
             ax.set_xlabel('Longitude')  # Set the x-axis label to 'Longitude'
             ax.set_ylabel('Latitude')  # Set the y-axis label to 'Latitude'
             ax.set_title('Node Data with Start & Goal Points and Closest Calculated Start & Goal Nodes')
-            ax.legend(loc='upper center')
+            # ax.legend(loc='upper center')
             plt.show()
 
         else:
             print("Node data is not available after deletion.")
-
-
-
 
 
 
@@ -833,7 +986,8 @@ if __name__ == '__main__':
     # chart_us4ma23m = ShapefileHandler(shapefile_path)
     #
     # # Create a Selection box Manually for now.  Eventually this will come from mouse interaction
-    # x1, y1, x2, y2 = -70.8714, 41.573, -70.7866, 41.6372
+    # # x1, y1, x2, y2 = -70.8714, 41.693, -70.7866, 41.6372
+    # x1, y1, x2, y2 = -70.8714, 41.193, -70.7866, 41.55  #VineyardSound
     # bounding_box = box(x1, y1, x2, y2)
     # domain_data = chart_us4ma23m.make_land_polygon(showPlot=False, bounding_box=bounding_box)
     # print(type(domain_data))
@@ -841,7 +995,7 @@ if __name__ == '__main__':
     # print("Bounding dimensions of domain_data before quadtree:", domain_data.total_bounds)
     #
     # # Instantiate a QuadTree with the domain data polygon and the desired node lengths
-    # quad_tree = QuadTree(domain_data, node_length_near_boundary=0.0005, node_length_far_from_boundary=0.005)
+    # quad_tree = QuadTree(domain_data, node_length_near_boundary=0.001, node_length_far_from_boundary=0.0025)
     #
     # # Build the Quad Tree
     # # Start time
@@ -884,38 +1038,37 @@ if __name__ == '__main__':
     # elapsed_time = end_time - start_time
     # print("Land Nodes Deleted in:", elapsed_time, "seconds\n")
     # # plot node to confirm deletion
-    # # quad_tree.plot_node_data_after_deletion()
-    # quad_tree.write_serialize_quad_tree('west_island_medium.qtdata')
+    # quad_tree.plot_node_data_after_deletion()
+    # quad_tree.write_serialize_quad_tree('vineyardsound_medium.qtdata')
     #
     # # Visualize the Quad Tree (after node deletion)
-    # # quad_tree.visualize_quadtree()
+    # quad_tree.visualize_quadtree()
 
     # Load QuadTree Data
     quadtree_data_path = (
         '/Users/dougveilleux/Documents/GitHub/UUVPathPlanningApp/'
-        'data/quad_tree/west_island_medium.qtdata'
+        'data/quad_tree/vineyardsound_coarse.qtdata'
     )
     quad_tree = deserialize_quad_tree(quadtree_data_path)
 
-
-
+    #
+    #
     # Test Start Point & Goal Point Methods
-    startPoint = (-70.840, 41.592)
-    goalPoint = (-70.907, 41.6284)
+    startPoint = (-70.75, 41.28)
+    goalPoint = (-70.85, 41.47)
     print("Start Point:", startPoint)
     print("Goal Point:", goalPoint)
 
     # Find closest nodes in the quad tree to Start and Goal points
     closest_start_node, closest_start_nodes, start_search_region = quad_tree.find_closest_node(startPoint)
     closest_goal_node, closest_goal_nodes, goal_search_region = quad_tree.find_closest_node(goalPoint)
-
     # quad_tree.plot_nearest_node(startPoint, goalPoint,
     #                             closest_start_node, closest_goal_node,
     #                             closest_start_nodes, closest_goal_nodes,
     #                             start_search_region, goal_search_region)
     # print(closest_start_node.longitude, closest_start_node.latitude)
 
-    start_neighbors = quad_tree.get_neighbors(closest_start_node)
+    start_neighbors = quad_tree.get_neighbors2(closest_start_node, search_radius=0.03, search_band=0.001)
     for node in start_neighbors:
         print("Node Details:")
         print("Longitude:", node.longitude)
@@ -927,9 +1080,9 @@ if __name__ == '__main__':
                                 closest_start_node, closest_goal_node,
                                 closest_start_nodes, closest_goal_nodes,
                                 start_search_region, goal_search_region)
-
-
-    goal_neighbors = quad_tree.get_neighbors(closest_goal_node)
+    #
+    #
+    goal_neighbors = quad_tree.get_neighbors2(closest_goal_node, search_radius=0.03, search_band=0.001)
     for node in goal_neighbors:
         print("Node Details:")
         print("Longitude:", node.longitude)
@@ -937,11 +1090,8 @@ if __name__ == '__main__':
         print("landOrWater:", node.landOrWater)
         print()  # Add an empty line for better readability between nodes
 
-    # quad_tree.plot_neighbors(goal_neighbors, startPoint, goalPoint,
-    #                             closest_start_node, closest_goal_node,
-    #                             closest_start_nodes, closest_goal_nodes,
-    #                             start_search_region, goal_search_region)
-
-
-
+    quad_tree.plot_neighbors(goal_neighbors, startPoint, goalPoint,
+                                closest_start_node, closest_goal_node,
+                                closest_start_nodes, closest_goal_nodes,
+                                start_search_region, goal_search_region)
 

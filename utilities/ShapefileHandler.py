@@ -346,9 +346,9 @@ class ShapefileHandler:
             # Setting same scale for x and y axes
             # ax.set_aspect('equal')
             # Setting Title
-            ax.set_title('Land Polygons -> Single MultiPolygon', fontsize=20)
+            # ax.set_title('Land Polygons -> Single MultiPolygon', fontsize=20)
             # Show plot
-            plt.show()
+            # plt.show()
 
         return land_domain_series
 
@@ -541,7 +541,7 @@ if __name__ == '__main__':
     # print(type(coords))
 
     # Create a Selection box Manually for not.  Eventually this will come from mouse interaction
-    x1, y1, x2, y2 = -70.8714, 41.573, -70.7866, 41.6372
+    x1, y1, x2, y2 = -70.8714, 41.193, -70.7866, 41.55
     bounding_box = box(x1, y1, x2, y2)
     land_domain = chart_us4ma23m.make_land_polygon(showPlot=True, bounding_box=bounding_box)
     print(type(land_domain))
