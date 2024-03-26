@@ -219,7 +219,7 @@ class AStarPathPlanner:
         else:
             print("Node data is not available after deletion.")
 
-    def visualize_astar_path(self, start_point, goal_point, start_closest_node, goal_closest_node, path):
+    def visualize_astar_path(self, start_point, goal_point, start_closest_node, goal_closest_node, path, ax=None):
         """
 
         :param start_point:
@@ -229,7 +229,7 @@ class AStarPathPlanner:
         :return:
         """
         # Create a new figure and axis
-        fig, ax = plt.subplots(figsize=(14, 9))
+        # fig, ax = plt.subplots(figsize=(14, 9))
 
         self.quadtree.visualize_chart_data(ax)
 
@@ -251,7 +251,7 @@ class AStarPathPlanner:
         ax.set_title('AStar Optimized Path', fontsize=20)
         ax.legend(loc='upper right')
 
-        plt.show()
+        # plt.show()
 
 
     def visualize_astar_algorithm(self, start_node, goal_node, current_node, past_nodes_for_display):
@@ -275,8 +275,8 @@ class AStarPathPlanner:
         self.ax.scatter(current_node.longitude, current_node.latitude, facecolor='none', edgecolor='blue',
                    marker='o', linewidth=1.0, s=100, label='Current Node')
         self.ax.set_title('AStar Algorithm In Motion', fontsize=20)
-        plt.draw()
-        plt.pause(0.05)
+        # plt.draw()
+        # plt.pause(0.05)
 
 
 

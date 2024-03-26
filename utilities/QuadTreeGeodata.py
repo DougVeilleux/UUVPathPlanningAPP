@@ -709,7 +709,7 @@ class QuadTree:
 
 
     #### vvvv PLOTTING vvvv ####
-    def visualize_chart_data(self, ax):
+    def visualize_chart_data(self, ax=None):
         # Create a new figure and axis
         # fig, ax = plt.subplots(figsize=(14, 9))
 
@@ -729,7 +729,7 @@ class QuadTree:
         # Add grid
         ax.grid(True, which='both', color='darkgrey', linestyle='--', linewidth=0.5)
         # Setting Title
-        ax.set_title('', fontsize=20)
+        # ax.set_title('', fontsize=20)
 
         # Show the plot
         # plt.show()
@@ -1051,47 +1051,49 @@ if __name__ == '__main__':
     )
     quad_tree = deserialize_quad_tree(quadtree_data_path)
 
+    quad_tree.visualize_chart_data()
+    # plt.show()
+    # #
+    # #
+    # # Test Start Point & Goal Point Methods
+    # startPoint = (-70.75, 41.28)
+    # goalPoint = (-70.85, 41.47)
+    # print("Start Point:", startPoint)
+    # print("Goal Point:", goalPoint)
     #
+    # # Find closest nodes in the quad tree to Start and Goal points
+    # closest_start_node, closest_start_nodes, start_search_region = quad_tree.find_closest_node(startPoint)
+    # closest_goal_node, closest_goal_nodes, goal_search_region = quad_tree.find_closest_node(goalPoint)
+    # # quad_tree.plot_nearest_node(startPoint, goalPoint,
+    # #                             closest_start_node, closest_goal_node,
+    # #                             closest_start_nodes, closest_goal_nodes,
+    # #                             start_search_region, goal_search_region)
+    # # print(closest_start_node.longitude, closest_start_node.latitude)
     #
-    # Test Start Point & Goal Point Methods
-    startPoint = (-70.75, 41.28)
-    goalPoint = (-70.85, 41.47)
-    print("Start Point:", startPoint)
-    print("Goal Point:", goalPoint)
-
-    # Find closest nodes in the quad tree to Start and Goal points
-    closest_start_node, closest_start_nodes, start_search_region = quad_tree.find_closest_node(startPoint)
-    closest_goal_node, closest_goal_nodes, goal_search_region = quad_tree.find_closest_node(goalPoint)
-    # quad_tree.plot_nearest_node(startPoint, goalPoint,
+    # start_neighbors = quad_tree.get_neighbors2(closest_start_node, search_radius=0.03, search_band=0.001)
+    # for node in start_neighbors:
+    #     print("Node Details:")
+    #     print("Longitude:", node.longitude)
+    #     print("Latitude:", node.latitude)
+    #     print("landOrWater:", node.landOrWater)
+    #     print()  # Add an empty line for better readability between nodes
+    #
+    # quad_tree.plot_neighbors(start_neighbors, startPoint, goalPoint,
     #                             closest_start_node, closest_goal_node,
     #                             closest_start_nodes, closest_goal_nodes,
     #                             start_search_region, goal_search_region)
-    # print(closest_start_node.longitude, closest_start_node.latitude)
-
-    start_neighbors = quad_tree.get_neighbors2(closest_start_node, search_radius=0.03, search_band=0.001)
-    for node in start_neighbors:
-        print("Node Details:")
-        print("Longitude:", node.longitude)
-        print("Latitude:", node.latitude)
-        print("landOrWater:", node.landOrWater)
-        print()  # Add an empty line for better readability between nodes
-
-    quad_tree.plot_neighbors(start_neighbors, startPoint, goalPoint,
-                                closest_start_node, closest_goal_node,
-                                closest_start_nodes, closest_goal_nodes,
-                                start_search_region, goal_search_region)
+    # #
+    # #
+    # goal_neighbors = quad_tree.get_neighbors2(closest_goal_node, search_radius=0.03, search_band=0.001)
+    # for node in goal_neighbors:
+    #     print("Node Details:")
+    #     print("Longitude:", node.longitude)
+    #     print("Latitude:", node.latitude)
+    #     print("landOrWater:", node.landOrWater)
+    #     print()  # Add an empty line for better readability between nodes
     #
-    #
-    goal_neighbors = quad_tree.get_neighbors2(closest_goal_node, search_radius=0.03, search_band=0.001)
-    for node in goal_neighbors:
-        print("Node Details:")
-        print("Longitude:", node.longitude)
-        print("Latitude:", node.latitude)
-        print("landOrWater:", node.landOrWater)
-        print()  # Add an empty line for better readability between nodes
-
-    quad_tree.plot_neighbors(goal_neighbors, startPoint, goalPoint,
-                                closest_start_node, closest_goal_node,
-                                closest_start_nodes, closest_goal_nodes,
-                                start_search_region, goal_search_region)
+    # quad_tree.plot_neighbors(goal_neighbors, startPoint, goalPoint,
+    #                             closest_start_node, closest_goal_node,
+    #                             closest_start_nodes, closest_goal_nodes,
+    #                             start_search_region, goal_search_region)
 
