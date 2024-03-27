@@ -34,7 +34,7 @@ class AStarPathPlanner:
 
         past_nodes_for_display = []
         display_count = 0
-        search_radius, search_band = 0.01, 0.005
+        search_radius, search_band = 0.014, 0.005
         while open_set:
             # Get node with the lowest f_score value from the open set and set to current node
             _, current = heapq.heappop(open_set)
@@ -229,7 +229,7 @@ class AStarPathPlanner:
         :return:
         """
         # Create a new figure and axis
-        # fig, ax = plt.subplots(figsize=(14, 9))
+        fig, ax = plt.subplots(figsize=(14, 9))
 
         self.quadtree.visualize_chart_data(ax)
 
@@ -249,9 +249,9 @@ class AStarPathPlanner:
 
         # Setting Title
         ax.set_title('AStar Optimized Path', fontsize=20)
-        ax.legend(loc='upper right')
+        ax.legend(loc='center right')
 
-        # plt.show()
+        plt.show()
 
 
     def visualize_astar_algorithm(self, start_node, goal_node, current_node, past_nodes_for_display):
@@ -275,8 +275,8 @@ class AStarPathPlanner:
         self.ax.scatter(current_node.longitude, current_node.latitude, facecolor='none', edgecolor='blue',
                    marker='o', linewidth=1.0, s=100, label='Current Node')
         self.ax.set_title('AStar Algorithm In Motion', fontsize=20)
-        # plt.draw()
-        # plt.pause(0.05)
+        plt.draw()
+        plt.pause(0.05)
 
 
 
@@ -312,8 +312,7 @@ if __name__ == '__main__':
     """
     # Start time
     start_time = time.time()
-    startPoint = (-70.60, 41.33)
-    # goalPoint = (-70.76, 41.505)
+    startPoint = (-70.60, 41.493)
     goalPoint = (-70.8411, 41.4347)
 
     # print("Start Point:", startPoint)
