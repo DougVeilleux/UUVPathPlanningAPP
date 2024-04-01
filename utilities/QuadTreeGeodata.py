@@ -146,6 +146,10 @@ class QuadTree:
         self.original_bounds = self.calculate_original_bounds()
 
     def calculate_original_bounds(self):
+        """
+        Calculate the bounds of the original dataset
+        :return: min_x, min_y, max_x, max_y
+        """
         if isinstance(self.root.domain_data, gpd.GeoDataFrame):
             geometries = self.root.domain_data['geometry']
             merged_geometry = unary_union(geometries)
@@ -204,26 +208,21 @@ class QuadTree:
                                  (node.max_x, node.max_y), (node.min_x, node.max_y)])
         # Print the node_boundary for debugging
         # print("Node Boundary:", node_boundary)
-
         multi_polygon = self.root.domain_data.unary_union
         # Print the node_boundary for debugging
         # print("MultiPolygon Boundary:", node_boundary.boundary)
-
         boundary_intersects = node_boundary.intersects(multi_polygon.boundary)
-
         # Calculate the nearest points from the node center to the multi_polygon boundary (land)
         nearest_point_node, nearest_point_boundary = nearest_points(node_boundary.centroid, multi_polygon.boundary)
         # Calculate the distance from the node to the nearest boundary
         distance_to_boundary_meters = geodesic((nearest_point_node.y, nearest_point_node.x),
                                                (nearest_point_boundary.y, nearest_point_boundary.x)).meters
-
         # Set node_length based of the distance from the boundary
         threshold_distance = 1000  # meters
         if distance_to_boundary_meters < threshold_distance:
             node_length = self.node_length_near_boundary
         else:
             node_length = self.node_length_far_from_boundary
-
         # Check if the node is large enough to subdivide based on node_length
         width = node.max_x - node.min_x
         height = node.max_y - node.min_y
@@ -246,8 +245,6 @@ class QuadTree:
         return boundary_intersects and large_enough
 
 
-
-
     #### vvvv HELPERS vvvv####
     def classify_nodes(self):
         """
@@ -257,7 +254,6 @@ class QuadTree:
         # Get the land polygon from the domain data
         # geo_data = self.root.domain_data['geometry'].tolist()
         land_polygon = self.root.domain_data.unary_union
-
         # Start recursive classification
         self._classify_nodes_recursive(self.root, land_polygon)
 
@@ -272,7 +268,6 @@ class QuadTree:
             node_intersects_land = node_boundary.intersects(land_polygon)
             # Set landOrWater value accordingly
             node.landOrWater = 1 if node_intersects_land else 0
-
             # Recursively classify child nodes
             self._classify_nodes_recursive(node.northWest, land_polygon)
             self._classify_nodes_recursive(node.northEast, land_polygon)
@@ -295,7 +290,6 @@ class QuadTree:
         # Calculate longitude and latitude
         longitude = (node.min_x + node.max_x) / 2
         latitude = (node.min_y + node.max_y) / 2
-
         # Check if the node is a leaf node
         if node.is_leaf:
             # Append node coordinates and landOrWater value to node_data list
@@ -416,8 +410,8 @@ class QuadTree:
         """
 
         # Check if the bounding box of the node intersects with the search region
-        intersects = (node.longitude >= search_region[0] and node.longitude <= search_region[2] and
-                      node.latitude >= search_region[1] and node.latitude <= search_region[3])
+        intersects = (search_region[0] <= node.longitude <= search_region[2] and
+                      search_region[1] <= node.latitude <= search_region[3])
         return intersects
 
     def get_neighbors(self, target_node, search_radius=0.01):
@@ -528,7 +522,10 @@ class QuadTree:
 
     def get_neighbors2(self, target_node, search_radius=0.02, search_band=0.001):
         """
-        Get the neighbors of a given node in the quadtree
+        Get the neighbors of a given node in the quadtree.  Was intended to use this for the
+        AStar "get_neighbors" but then refactor to search based on GPS coords and no longer needed
+        this method.  However, keeping it as a fair amount of effort was made to write it and I want
+        save it in case it could be utilized in another way.
         :param node: the current node neighbors are being found for
         :return: neighbors: list of neighbors nodes
         """
@@ -647,16 +644,11 @@ class QuadTree:
             if node.longitude >= w_limit_longitude:
                 filtered_w_neighbors.append(node)
 
-
         # Append neighbors from all quadrants to the neighbors list
         neighbors.extend(filtered_n_neighbors)
         neighbors.extend(filtered_s_neighbors)
         neighbors.extend(filtered_e_neighbors)
         neighbors.extend(filtered_w_neighbors)
-        # print("North Lat. Limit, Nodes should be <= to: ", n_limit_latitude)
-        # print("South Lat. Limit, Nodes should be >= to: ", s_limit_latitude)
-        # print("East Lon. Limit, Nodes should be <= to: ", e_limit_longitude)
-        # print("West Lon. Limit, Nodes should be >= to: ", w_limit_longitude)
 
         # print("Number of target_nodes found:", len(neighbors))
         # Filter neighbors within the bounding box
@@ -667,7 +659,6 @@ class QuadTree:
                 # print("Filtering...")
                 filtered_neighbors.append(node)
         # print("Number of filtered target_node Neighbors:", len(filtered_neighbors))
-
         return filtered_neighbors
 
     def __str__(self):
@@ -702,6 +693,12 @@ class QuadTree:
         return neighboring_node is not None and neighboring_node.landOrWater == 0
 
     def write_serialize_quad_tree(self, filename):
+        """
+        Write the QuadTree Datastructure to a file with the pickle serialization for
+        use with the AStar.  Building the quad tree is time consuming but reading in the
+        data structure is very fast and efficient.
+        :param filename:
+        """
         filepath = '/Users/dougveilleux/Documents/GitHub/UUVPathPlanningAPP/data/quad_tree/'
         with open(filepath + filename, 'wb') as f:
             pickle.dump(quad_tree, f)
@@ -717,7 +714,7 @@ class QuadTree:
             node.southEast) + self.count_nodes(node.southWest)
 
 
-    #### vvvv PLOTTING vvvv ####
+    #### vvvv PLOT HELPERS vvvv ####
     def visualize_chart_data(self, ax=None):
         # Create a new figure and axis
         # fig, ax = plt.subplots(figsize=(14, 9))
