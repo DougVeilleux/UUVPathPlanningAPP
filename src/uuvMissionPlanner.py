@@ -24,7 +24,7 @@ class UuvMissionPlanner(tk.Tk):
 
 if __name__ == "__main__":
     app = UuvMissionPlanner()
-    app.geometry("1400x1200")
+    app.geometry("1500x1000")
 
     # Start the main event loop
     app.mainloop()

@@ -20,7 +20,7 @@ class AStarPathPlanner:
         self.quadtree = quadtree
         self.fig, self.ax = plt.subplots(figsize=(14, 9))  # Create figure and axis here
 
-    def astar_path(self, start_point, goal_point, distance=500, number_of_neighbors=4):
+    def astar_path(self, start_point, goal_point, distance=500, number_of_neighbors=72):
         """
         A Star path planning algorithm based on the Astar Wikipage
             https://en.wikipedia.org/wiki/A*_search_algorithm
@@ -58,8 +58,8 @@ class AStarPathPlanner:
                 print("AStar Searching...loop number: ", display_count)  # Debug Statement
             # Visualization Elements
             past_points_for_display.append(current)
-            self.visualize_astar_algorithm(start_point, goal_point, current, past_points_for_display,
-                                           ax=self.ax, appDisplay=False)
+            # self.visualize_astar_algorithm(start_point, goal_point, current, past_points_for_display,
+            #                                ax=self.ax, appDisplay=False)
 
             # Check if goal has been found and return the path
             if self.h_euclidean(current, goal_point) <= 0.015:
@@ -69,14 +69,18 @@ class AStarPathPlanner:
             # Get the neighbors after setting the distance parameter based on the distance from start to goal.
             start_to_goal_distance = math.sqrt((start_point_longitude - goal_point_longitude) ** 2 +
                                                (start_point_latitude - goal_point_latitude) ** 2)
-            # distance = 1000 if start_to_goal_distance >= 0.2 else \
-            #     875 if 0.15 <= start_to_goal_distance < 0.20 else \
-            #         625 if 0.05 <= start_to_goal_distance < 0.15 else \
-            #             375
-            distance = 800 if start_to_goal_distance >= 0.2 else \
-                700 if 0.15 <= start_to_goal_distance < 0.20 else \
-                    500 if 0.05 <= start_to_goal_distance < 0.15 else \
-                        200
+            distance = 1000 if start_to_goal_distance >= 0.2 else \
+                875 if 0.15 <= start_to_goal_distance < 0.20 else \
+                    625 if 0.05 <= start_to_goal_distance < 0.15 else \
+                        375
+            # distance = 800 if start_to_goal_distance >= 0.2 else \
+            #     700 if 0.15 <= start_to_goal_distance < 0.20 else \
+            #         500 if 0.05 <= start_to_goal_distance < 0.15 else \
+            #             200
+            # distance = 400 if start_to_goal_distance >= 0.2 else \
+            #     350 if 0.15 <= start_to_goal_distance < 0.20 else \
+            #         250 if 0.05 <= start_to_goal_distance < 0.15 else \
+            #             100
             decimal_distance = self.meters_to_decimal_degrees(start_point, distance)
             # There are TWO Get Neighbor functions: get_neighbors_astar_radial: more limited but performs better
             # getting a path when no land obstacles are present get_neighbors_astar_square: versatile can solve
@@ -323,7 +327,7 @@ class AStarPathPlanner:
         # Plot the path
         if path:
             path_lon, path_lat = zip(*path)  # Unzip path coordinates
-            ax.plot(path_lon, path_lat, color='blue', marker='o', markersize=0.5, linewidth=1, label='A* Path')
+            ax.plot(path_lon, path_lat, color='blue', marker='o', markersize=0.75, linewidth=1, label='A* Path')
 
         # Setting Title
         ax.set_title('AStar Optimized Path', fontsize=20)

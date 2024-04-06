@@ -66,7 +66,7 @@ class PathPlannerPage(tk.Frame):
         # Add buttons to select start and goal points
         button_frame = tk.Frame(main_frame)
         button_frame.config(bg=back_color)
-        button_frame.pack(side="bottom", pady=150)
+        button_frame.pack(side="bottom", pady=50)
 
         self.select_start_point_button = tk.Button(button_frame, text="Select Start Point",
                                                    command=lambda: self.select_point("start"),
@@ -113,7 +113,7 @@ class PathPlannerPage(tk.Frame):
         terminal_title = tk.Label(right_top_frame, text="Terminal Window", font=("Helvetica", 14))
         terminal_title.pack(side="top", pady=10)
         # Terminal
-        self.terminal = tk.Text(right_top_frame, wrap="word", height=40, width=50)
+        self.terminal = tk.Text(right_top_frame, wrap="word", height=30, width=50)
         self.terminal.pack(side="top", fill="both", expand=True)
         self.terminal.config(bg="#262660")
         # Clear Terminal Button
