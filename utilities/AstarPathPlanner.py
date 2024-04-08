@@ -69,6 +69,9 @@ class AStarPathPlanner:
             # Get the neighbors after setting the distance parameter based on the distance from start to goal.
             start_to_goal_distance = math.sqrt((start_point_longitude - goal_point_longitude) ** 2 +
                                                (start_point_latitude - goal_point_latitude) ** 2)
+            # distance is set base on the euclidean distance from the start point to the goal point. THe larger
+            # the euclidean distance the larger the distance is set for the A* algorithm.  Three different experimental
+            # distance breakouts are shown for experimenting with the best solution.
             distance = 1000 if start_to_goal_distance >= 0.2 else \
                 875 if 0.15 <= start_to_goal_distance < 0.20 else \
                     625 if 0.05 <= start_to_goal_distance < 0.15 else \
@@ -81,6 +84,7 @@ class AStarPathPlanner:
             #     350 if 0.15 <= start_to_goal_distance < 0.20 else \
             #         250 if 0.05 <= start_to_goal_distance < 0.15 else \
             #             100
+
             decimal_distance = self.meters_to_decimal_degrees(start_point, distance)
             # There are TWO Get Neighbor functions: get_neighbors_astar_radial: more limited but performs better
             # getting a path when no land obstacles are present get_neighbors_astar_square: versatile can solve

@@ -1,11 +1,6 @@
-
-import geopandas as gpd
-import numpy as np
-import matplotlib.pyplot as plt
-
 from matplotlib.patches import Rectangle
 
-from utilities.simple_polygon_builder import *
+from tests.simple_polygon_builder import *
 from shapely.geometry import box  # Import the box function
 
 # Assuming you have a GeoDataFrame for the blue polygon
