@@ -20,7 +20,7 @@ class AStarPathPlanner:
         self.quadtree = quadtree
         self.fig, self.ax = plt.subplots(figsize=(14, 9))  # Create figure and axis here
 
-    def astar_path(self, start_point, goal_point, distance=500, number_of_neighbors=72):
+    def astar_path(self, start_point, goal_point, distance=500, number_of_neighbors=36):
         """
         A Star path planning algorithm based on the Astar Wikipage
             https://en.wikipedia.org/wiki/A*_search_algorithm
@@ -48,16 +48,20 @@ class AStarPathPlanner:
                 continue
             visited.add(current)
             visited_count[current] = visited_count.get(current, 0) + 1
+
             # Debug statements to print visited set and visited count
             if visited_count[current] > 1:
                 print("\nVisited Set:", visited)
                 print("Visited Count:", visited_count)
+
             # Terminal Display Statements
             display_count += 1
             if display_count % 20 == 0:
                 print("AStar Searching...loop number: ", display_count)  # Debug Statement
+
             # Visualization Elements
             past_points_for_display.append(current)
+            self.visualize_astar_algorithm_old(start_point, goal_point, current, past_points_for_display)
             # self.visualize_astar_algorithm(start_point, goal_point, current, past_points_for_display,
             #                                ax=self.ax, appDisplay=False)
 
@@ -93,7 +97,10 @@ class AStarPathPlanner:
             # distance adjustments have tested poorly and do not help converge faster to a path solution.
 
             # neighbors = self.get_neighbors_astar_radial(current, distance=decimal_distance, number_of_neighbors=number_of_neighbors)
-            neighbors = self.get_neighbors_astar_square(current, distance=decimal_distance)
+            neighbors = self.get_neighbors_astar_radial2(current, distance=decimal_distance, number_of_neighbors=number_of_neighbors)
+            # neighbors = self.get_neighbors_astar_square(current, distance=decimal_distance)
+            # neighbors = self.get_neighbors_astar_diamond(current, distance=decimal_distance)
+
             for neighbor in neighbors:
                 if neighbor[2] == 1:
                     # Penalize the neighbor heavily so it's less likely to be selected
@@ -218,6 +225,44 @@ class AStarPathPlanner:
 
         return neighbors
 
+    def get_neighbors_astar_radial2(self, current_point, distance=500, number_of_neighbors=8):
+        """
+        Calculate the neighboring points of the current point in a radial pattern a distance (radius)
+        from the current_point. The number of neighbors is evenly distributed angularly about the
+        current_point.
+        :param current_point: current GPS coordinate for which neighbors are found
+        :param distance: Distance from the point (in meters) to find neighbors.
+        :param number_of_neighbors: number of neighbors
+        :return: neighbors: list of GPS coordinates of the current point.
+        """
+        # Define the lat / lon
+        longitude, latitude = current_point[0], current_point[1]
+        # Calculate the angle between each neighbor
+        angle_increment = 360 / number_of_neighbors
+        # Calculate the neighbors coordinates
+        neighbors = []
+        for _ in range(2):  # Two iterations: first for distance, second for half the distance
+            for i in range(number_of_neighbors):
+                angle = math.radians(angle_increment * i)
+                # Calculate distance based on iteration
+                if _ == 0:
+                    dist = distance
+                else:
+                    dist = distance / 2.0
+                dx = dist * math.cos(angle)
+                dy = dist * math.sin(angle)
+                neighbor = (longitude + dx, latitude + dy)
+                # Find closest node
+                closest_node, _, _ = self.quadtree.find_closest_node(neighbor, initial_search_radius=0.005,
+                                                                     search_radius_increment=0.005,
+                                                                     max_search_radius=0.025)
+                # Append landOrWater value
+                if closest_node is not None and closest_node.landOrWater == 1:
+                    neighbors.append((*neighbor, 1))
+                elif closest_node is None or closest_node.landOrWater == 0:
+                    neighbors.append((*neighbor, 0))
+
+        return neighbors
     def get_neighbors_astar_square(self, current_point, distance=500):
         """
         Calculate the neighboring points forming a square around the current point.  The neighbor points
@@ -252,6 +297,49 @@ class AStarPathPlanner:
         for point in [lower_left, lower_right, upper_right, upper_left,
                       lower_middle, right_middle, upper_middle, left_middle,
                       upper_left_quadrant, upper_right_quadrant, lower_left_quadrant, lower_right_quadrant]:
+            closest_node, _, _ = self.quadtree.find_closest_node(point, initial_search_radius=0.005,
+                                                                 search_radius_increment=0.005,
+                                                                 max_search_radius=0.025)
+            # Append landOrWater value
+            if closest_node is not None and closest_node.landOrWater == 1:
+                neighbors.append((*point, 1))
+            elif closest_node is None or closest_node.landOrWater == 0:
+                neighbors.append((*point, 0))
+
+        return neighbors
+
+    def get_neighbors_astar_diamond(self, current_point, distance=500):
+        """
+        Calculate the neighboring points forming a diamond around the current point. The neighbor points
+        defined at the 4 cardinal directions of the diamond and then 4 additional neighbors are defined
+        at the middle of each of the 4 diagonals of the diamond.
+        :param current_point: current GPS coordinate for which neighbors are found
+        :param distance: Distance from the point (in meters) to find neighbors.
+        :return: neighbors: list of GPS coordinates of the current point.
+        """
+        # Define the lat / lon
+        longitude, latitude = current_point[0], current_point[1]
+        # Calculate half distance for the diamond shape
+        half_distance = distance / 2
+        # Calculate the neighbors coordinates forming a diamond
+        neighbors = []
+        # Cardinal directions
+        north = (longitude, latitude - distance)
+        south = (longitude, latitude + distance)
+        east = (longitude + distance, latitude)
+        west = (longitude - distance, latitude)
+        # Diagonals
+        northeast = (longitude + half_distance, latitude - half_distance)
+        southeast = (longitude + half_distance, latitude + half_distance)
+        southwest = (longitude - half_distance, latitude + half_distance)
+        northwest = (longitude - half_distance, latitude - half_distance)
+        # Middle of each diagonal
+        middle_ne = ((northeast[0] + southeast[0]) / 2, (northeast[1] + southeast[1]) / 2)
+        middle_se = ((southeast[0] + southwest[0]) / 2, (southeast[1] + southwest[1]) / 2)
+        middle_sw = ((southwest[0] + northwest[0]) / 2, (southwest[1] + northwest[1]) / 2)
+        middle_nw = ((northwest[0] + northeast[0]) / 2, (northwest[1] + northeast[1]) / 2)
+        # Find closest node for each point and append to neighbors
+        for point in [north, south, east, west, middle_ne, middle_se, middle_sw, middle_nw]:
             closest_node, _, _ = self.quadtree.find_closest_node(point, initial_search_radius=0.005,
                                                                  search_radius_increment=0.005,
                                                                  max_search_radius=0.025)
@@ -349,7 +437,7 @@ class AStarPathPlanner:
 
     def visualize_astar_algorithm_old(self, start_point, goal_point, current_point, past_points_for_display):
         """
-        Plotting helper to "animate / visualize" the AStar algorithim in motion.  Plots current_point, and
+        Plotting helper to "animate / visualize" the AStar algorithm in motion.  Plots current_point, and
         all past_points_for_display (visited points)
         :param start_point:
         :param goal_point:
@@ -373,7 +461,18 @@ class AStarPathPlanner:
 
         self.ax.set_title('AStar Algorithm In Motion', fontsize=20)
         plt.draw()
-        plt.pause(0.01)
+        plt.pause(0.05)
+
+
+    # def visualize_astar_algorithm_old(self, start_point, goal_point, current_point, past_points_for_display):
+    #     self.ax.clear()
+    #     # Plotting simplified data for testing
+    #     self.ax.plot([1, 2, 3], [1, 2, 3], 'ro-')  # Plot a red line with circles at (1,1), (2,2), (3,3)
+    #     self.ax.scatter(start_point[0], start_point[1], c='green', marker='*', s=150, label='Start Node')
+    #     self.ax.scatter(goal_point[0], goal_point[1], c='red', marker='*', s=150, label='Goal Node')
+    #     self.ax.scatter(current_point[0], current_point[1], c='blue', marker='o', s=100, label='Current Node')
+    #     plt.title('Test Plot')
+    #     plt.show()
 
     def visualize_astar_algorithm(self, start_point, goal_point, current_point, past_points_for_display, ax=None, appDisplay=False):
         """
@@ -434,6 +533,28 @@ class AStarPathPlanner:
             plt.pause(0.01)
 
 
+    def print_grid_with_visited_points(self, grid, visited_points, start_point, goal_point):
+        """
+        Prints the grid with visited points marked.
+        :param grid: The grid representing the map.
+        :param visited_points: List of visited points.
+        :param start_point: Start point coordinates.
+        :param goal_point: Goal point coordinates.
+        """
+        for i in range(len(grid)):
+            for j in range(len(grid[0])):
+                if (i, j) == start_point:
+                    print("S", end=" ")  # Mark start point
+                elif (i, j) == goal_point:
+                    print("G", end=" ")  # Mark goal point
+                elif (i, j) in visited_points:
+                    print("X", end=" ")  # Mark visited points
+                elif grid[i][j] == 1:
+                    print("#", end=" ")  # Mark obstacles
+                else:
+                    print(".", end=" ")  # Mark empty space
+            print()  # Move to the next row
+
 #### vvvv FUNCTIONS vvvv ####
 def deserialize_quad_tree(file_path):
     """
@@ -466,7 +587,7 @@ if __name__ == '__main__':
 
     # Test Set 1
     startPoint = (-70.87, 41.30)
-    goalPoint = (-70.85, 41.40)
+    goalPoint = (-70.75, 41.40)
     # Test Set 1 INVERSE
     # goalPoint = (-70.87, 41.30)
     # startPoint = (-70.85, 41.40)
@@ -526,7 +647,6 @@ if __name__ == '__main__':
     # Test Set 9 INVERSE
     # goalPoint = (-70.87, 41.30)
     # startPoint = (-70.75, 41.50)
-
 
 
     # Start time
