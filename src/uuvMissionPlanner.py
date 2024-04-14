@@ -13,13 +13,13 @@ class UuvMissionPlanner(tk.Tk):
         self.notebook = ttk.Notebook(self)
         self.notebook.pack(fill="both", expand=True)
 
-        # self.start_page = StartPage(self.notebook)
+        self.start_page = StartPage(self.notebook)
         self.path_planner_page = PathPlannerPage(self.notebook)
-        # self.survey_page = SurveyPlannerPage(self.notebook)
+        self.survey_page = SurveyPlannerPage(self.notebook)
 
-        # self.notebook.add(self.start_page, text="Start Page")
+        self.notebook.add(self.start_page, text="Start Page")
         self.notebook.add(self.path_planner_page, text="Path Planner")
-        # self.notebook.add(self.survey_page, text="Survey Planner")
+        self.notebook.add(self.survey_page, text="Survey Planner")
 
 
 if __name__ == "__main__":

@@ -73,7 +73,7 @@ if __name__ == '__main__':
     print("Land Nodes Deleted in:", elapsed_time, "seconds\n")
     # plot node to confirm deletion
     quad_tree.plot_node_data_after_deletion()
-    quad_tree.write_serialize_quad_tree('west_island_fine.qtdata')
+    quad_tree.write_serialize_quad_tree('presentation.qtdata')
 
     # Visualize the Quad Tree (after node deletion)
     quad_tree.visualize_quadtree()
