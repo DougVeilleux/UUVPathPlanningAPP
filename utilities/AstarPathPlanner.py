@@ -1,9 +1,5 @@
 # AstarPathPlanner.py
 
-import math
-import heapq
-import time
-
 from utilities.QuadTreeGeodata import *
 
 
@@ -20,7 +16,7 @@ class AStarPathPlanner:
         self.quadtree = quadtree
         self.fig, self.ax = plt.subplots(figsize=(14, 9))  # Create figure and axis here
 
-    def astar_path(self, start_point, goal_point, distance=500, number_of_neighbors=72):
+    def astar_path(self, start_point, goal_point, distance=500, number_of_neighbors=36):
         """
         A Star path planning algorithm based on the Astar Wikipage
             https://en.wikipedia.org/wiki/A*_search_algorithm
@@ -61,7 +57,7 @@ class AStarPathPlanner:
 
             # Visualization Elements
             past_points_for_display.append(current)
-            # self.visualize_astar_algorithm_old(start_point, goal_point, current, past_points_for_display)
+            self.visualize_astar_algorithm_old(start_point, goal_point, current, past_points_for_display)
             # self.visualize_astar_algorithm(start_point, goal_point, current, past_points_for_display,
             #                                ax=self.ax, appDisplay=False)
 
@@ -505,15 +501,15 @@ if __name__ == '__main__':
     # startPoint = (-70.8411, 41.4347)
 
     # Test Set 7 distance=1000, number_of_neighbors=4) square
-    startPoint = (-70.80, 41.30)
-    goalPoint = (-70.87, 41.45)
+    # startPoint = (-70.80, 41.30)
+    # goalPoint = (-70.87, 41.45)
     # Test Set 7 INVERSE
     # goalPoint = (-70.80, 41.30)
     # startPoint = (-70.87, 41.45)
 
     # Test Set 8 distance=2000, number_of_neighbors=4) square
-    # startPoint = (-70.63, 41.335)
-    # goalPoint = (-70.87, 41.45)
+    startPoint = (-70.63, 41.335)
+    goalPoint = (-70.87, 41.45)
     # Test Set 8 INVERSE
     # goalPoint = (-70.63, 41.335)
     # startPoint = (-70.87, 41.45)
